@@ -287,7 +287,36 @@ document.addEventListener("DOMContentLoaded", function() {
     function renderCharts(chartData) {
         Object.values(charts).forEach(chart => { if(chart) chart.destroy(); });
 
-        const stackedBarOptions = {
+        const ageGroupOptions = {
+            responsive: true, maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: { x: { stacked: true, beginAtZero: true }, y: { stacked: true } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false },
+                datalabels: {
+                    display: function(context) {
+                        // Exibir apenas no último dataset (última barra empilhada)
+                        return context.datasetIndex === context.chart.data.datasets.length - 1;
+                    },
+                    color: 'black',
+                    font: { weight: 'bold' },
+                    formatter: function(value, context) {
+                        // Calcular o total somando todos os datasets para este label
+                        let total = 0;
+                        const dataIndex = context.dataIndex;
+                        context.chart.data.datasets.forEach(dataset => {
+                            total += dataset.data[dataIndex];
+                        });
+                        return total.toLocaleString('pt-BR');
+                    },
+                    anchor: 'end',
+                    align: 'end'
+                }
+            }
+        };
+
+        const vulnerabilityOptions = {
             responsive: true, maintainAspectRatio: false,
             scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
             plugins: { legend: { display: false }, tooltip: { enabled: true }, datalabels: { display: false } }
@@ -339,8 +368,8 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         };
 
-        charts.ageGroup = new Chart(document.getElementById("ageGroupChart").getContext("2d"), { type: "bar", data: chartData.ageGroupData, options: stackedBarOptions });
-        charts.vulnerability = new Chart(document.getElementById("vulnerabilityChart").getContext("2d"), { type: "bar", data: chartData.vulnerabilityData, options: stackedBarOptions });
+        charts.ageGroup = new Chart(document.getElementById("ageGroupChart").getContext("2d"), { type: "bar", data: chartData.ageGroupData, options: ageGroupOptions });
+        charts.vulnerability = new Chart(document.getElementById("vulnerabilityChart").getContext("2d"), { type: "bar", data: chartData.vulnerabilityData, options: vulnerabilityOptions });
         charts.ubsPopulation = new Chart(document.getElementById("ubsChart").getContext("2d"), { type: "bar", data: chartData.ubsPopulationData, options: ubsPopulationOptions });
         charts.historical = new Chart(document.getElementById("historicalChart").getContext("2d"), { type: "bar", data: chartData.historicalData, options: historicalOptions });
         charts.districtCensus = new Chart(document.getElementById("districtCensusChart").getContext("2d"), { type: "bar", data: chartData.districtCensusData, options: censusChartOptions });
