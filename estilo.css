@@ -1,0 +1,266 @@
+.header-bg-dark {
+    background: #1e3a8a; /* Azul escuro */
+}
+
+.valor-total-panel {
+    background: #3b82f6; /* Azul médio */
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Custom Multiselect Styles */
+.custom-multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.multiselect-display {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.multiselect-display:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.multiselect-display.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.multiselect-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #3b82f6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.multiselect-dropdown.show {
+    display: block;
+}
+
+.multiselect-option {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.multiselect-option:hover {
+    background-color: #f3f4f6;
+}
+
+.multiselect-option input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    accent-color: #3b82f6;
+}
+
+.multiselect-option label {
+    cursor: pointer;
+    flex: 1;
+    font-size: 14px;
+    color: #374151;
+}
+
+/* Tabela com texto preto e títulos em negrito */
+#dataTable th {
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+#dataTable td {
+    color: #000000 !important;
+}
+
+/* Grid para 4 gráficos */
+.dashboard-grid-four {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid-four {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+    @media (min-width: 1024px) {
+        .dashboard-grid-four {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+/* Grid para 3 gráficos */
+.dashboard-grid-three {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid-three {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.chart-container-bar {
+    position: relative;
+    height: 500px; /* Aumentada a altura para melhor visualização */
+    width: 100%;
+    padding: 20px 10px; /* Adicionado padding para evitar cortes */
+}
+
+.chart-container {
+    position: relative;
+    height: 400px; /* Aumentada a altura */
+    width: 100%;
+    padding: 20px;
+}
+
+.table-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+#dataTable {
+    min-width: 100%;
+    width: max-content; /* Permite que a tabela use o espaço necessário */
+}
+
+#dataTable th, #dataTable td {
+    white-space: nowrap;
+    min-width: 80px; /* Largura mínima para as colunas */
+    text-align: center;
+}
+
+#dataTable th:first-child, #dataTable td:first-child {
+    min-width: 200px; /* Largura maior para a primeira coluna (CBO) */
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background-color: white;
+    z-index: 10;
+}
+
+/* Melhorias para responsividade */
+@media (max-width: 768px) {
+    .chart-container-bar {
+        height: 400px;
+        padding: 10px 5px;
+    }
+    
+    .chart-container {
+        height: 300px;
+        padding: 10px;
+    }
+    
+    .dashboard-grid-four {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-grid-three {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Estilos para melhorar a aparência geral */
+.bg-white {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Correção para evitar overflow horizontal */
+body {
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Estilos para múltiplas seleções */
+.multi-select {
+    height: 120px; /* Altura fixa para mostrar múltiplas opções */
+}
+
+.multi-select option {
+    padding: 8px;
+    margin: 2px 0;
+}
+
+.multi-select option:checked {
+    background-color: #3b82f6;
+    color: white;
+}
+
+/* Estilos para botões */
+button {
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Melhorias para responsividade dos botões */
+@media (max-width: 768px) {
+    .flex.flex-wrap.gap-3 {
+        flex-direction: column;
+    }
+    
+    .flex.flex-wrap.gap-3 button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
