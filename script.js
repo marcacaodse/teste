@@ -17,7 +17,7 @@ function initializeChoices() {
             placeholderValue: 'Selecione uma ou mais opções',
             allowHTML: false,
         });
-        // O evento 'change' é adicionado ao elemento original, não à instância do Choices
+        // Adiciona o listener para aplicar os filtros quando uma opção é alterada
         document.getElementById(id).addEventListener('change', applyFilters);
     });
     // Adiciona o listener para o filtro de data
@@ -50,7 +50,8 @@ async function loadData() {
                         switch (cleanHeader) {
                             case 'UNIDADE DE SAÚDE': row.unidadeSaude = value; break;
                             case 'DATA': row.dataAgendamento = value; break;
-                            case 'HORÁRIO': row.horarioAgendamento = value; break;
+                            // CORREÇÃO APLICADA AQUI: Mudado de 'HORÁRIO' para 'HORA'
+                            case 'HORA': row.horarioAgendamento = value; break;
                             case 'NOME DO PACIENTE': row.nomePaciente = value; break;
                             case 'Nº PRONTUÁRIO VIVVER': row.prontuarioVivver = value; break;
                             case 'OBSERVAÇÃO/ UNIDADE DE SAÚDE': row.observacaoUnidadeSaude = value; break;
