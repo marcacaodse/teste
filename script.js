@@ -36,7 +36,6 @@ async function loadData( ) {
         if (csvText && csvText.length > 100) {
             const lines = csvText.split('\n');
             
-            // Encontrar a linha com os cabeçalhos (linha 6 no CSV)
             let headerLineIndex = -1;
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].includes('UNIDADE DE SAÚDE') && lines[i].includes('DATA')) {
@@ -49,27 +48,21 @@ async function loadData( ) {
                 throw new Error('Cabeçalhos não encontrados na planilha');
             }
 
-            // Processar cabeçalhos removendo as duas primeiras colunas vazias
             const headerLine = lines[headerLineIndex];
             const rawHeaders = parseCSVLine(headerLine);
-            const headers = rawHeaders.slice(2); // Remove as duas primeiras colunas vazias
-
-            console.log('Cabeçalhos encontrados:', headers);
+            const headers = rawHeaders.slice(2);
 
             allData = [];
             
-            // Processar dados a partir da linha seguinte aos cabeçalhos
             for (let i = headerLineIndex + 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line) {
                     const rawValues = parseCSVLine(line);
-                    const values = rawValues.slice(2); // Remove as duas primeiras colunas vazias
+                    const values = rawValues.slice(2);
                     
-                    // Verificar se a linha tem dados válidos
                     if (values.length >= headers.length && values.some(val => val.trim() !== '')) {
                         let row = {};
                         
-                        // Mapear os cabeçalhos para as propriedades do objeto
                         headers.forEach((header, index) => {
                             const cleanHeader = header.trim();
                             const value = values[index] ? values[index].trim() : '';
@@ -103,22 +96,18 @@ async function loadData( ) {
                                     row.laboratorioColeta = value;
                                     break;
                                 default:
-                                    // Para cabeçalhos não reconhecidos, usar uma versão limpa do nome
                                     const cleanKey = cleanHeader.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                                     row[cleanKey] = value;
                                     break;
                             }
                         });
                         
-                        // Só adicionar se tiver pelo menos unidade de saúde ou data
                         if (row.unidadeSaude || row.dataAgendamento) {
                             allData.push(row);
                         }
                     }
                 }
             }
-            
-            console.log(`Carregados ${allData.length} registros da planilha`);
             
         } else {
             throw new Error('Dados CSV vazios ou inválidos');
@@ -136,8 +125,6 @@ async function loadData( ) {
         console.error('Erro ao carregar dados:', error);
         document.getElementById('connectionStatus').className = 'status-indicator status-offline';
         document.getElementById('connectionText').textContent = 'Erro de conexão';
-        
-        // Em caso de erro, mostrar mensagem para o usuário
         alert('Erro ao carregar dados da planilha. Verifique a conexão com a internet e tente novamente.');
     }
 }
@@ -168,15 +155,9 @@ function updateFilters() {
     const laboratorioColetaSet = new Set();
 
     allData.forEach(item => {
-        if (item.unidadeSaude && item.unidadeSaude !== 'Preencher') {
-            unidadeSaudeSet.add(item.unidadeSaude);
-        }
-        if (item.horarioAgendamento) {
-            horarioSet.add(item.horarioAgendamento);
-        }
-        if (item.laboratorioColeta && item.laboratorioColeta !== 'Preencher') {
-            laboratorioColetaSet.add(item.laboratorioColeta);
-        }
+        if (item.unidadeSaude && item.unidadeSaude !== 'Preencher') unidadeSaudeSet.add(item.unidadeSaude);
+        if (item.horarioAgendamento) horarioSet.add(item.horarioAgendamento);
+        if (item.laboratorioColeta && item.laboratorioColeta !== 'Preencher') laboratorioColetaSet.add(item.laboratorioColeta);
     });
 
     updateSelectOptions('unidadeSaudeFilter', Array.from(unidadeSaudeSet).sort());
@@ -186,12 +167,10 @@ function updateFilters() {
 
 function updateSelectOptions(selectId, options) {
     const select = document.getElementById(selectId);
-    // Clear existing options, but keep the first 'Todos' option if it exists
     while (select.options.length > 0) {
         select.remove(0);
     }
     
-    // Add a default 'Todos' option for single-select filters, or none for multi-select
     if (!select.multiple) {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
@@ -208,10 +187,10 @@ function updateSelectOptions(selectId, options) {
 }
 
 function applyFilters() {
-    const unidadeSaudeFilter = Array.from(document.getElementById('unidadeSaudeFilter').selectedOptions).map(option => option.value);
-    const horarioFilter = Array.from(document.getElementById('horarioFilter').selectedOptions).map(option => option.value);
+    const unidadeSaudeFilter = Array.from(document.getElementById('unidadeSaudeFilter').selectedOptions).map(o => o.value);
+    const horarioFilter = Array.from(document.getElementById('horarioFilter').selectedOptions).map(o => o.value);
     const dataFilter = document.getElementById('dataFilter').value;
-    const laboratorioColetaFilter = Array.from(document.getElementById('laboratorioColetaFilter').selectedOptions).map(option => option.value);
+    const laboratorioColetaFilter = Array.from(document.getElementById('laboratorioColetaFilter').selectedOptions).map(o => o.value);
 
     filteredData = allData.filter(item => {
         if (unidadeSaudeFilter.length > 0 && !unidadeSaudeFilter.includes(item.unidadeSaude)) return false;
@@ -234,13 +213,11 @@ function parseDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.split('/');
     if (parts.length === 3) {
-        // Date format is DD/MM/YYYY, convert to YYYY-MM-DD for Date object
         return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
     }
     return null;
 }
 
-// Register Chart.js DataLabels plugin
 Chart.register(ChartDataLabels);
 
 function updateDashboard() {
@@ -258,7 +235,6 @@ function updateCharts() {
     updateChartUltimaDataAgendamento();
 }
 
-// Gráfico 1: Pacientes agendados por dia e unidade de saúde (azul escuro)
 function updateChartPacientesDiaUnidade() {
     const dayUnidadeCount = {};
     filteredData.forEach(item => {
@@ -268,10 +244,7 @@ function updateChartPacientesDiaUnidade() {
         }
     });
 
-    const sortedData = Object.entries(dayUnidadeCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
+    const sortedData = Object.entries(dayUnidadeCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const ctx = document.getElementById('chartPacientesDiaUnidade').getContext('2d');
     if (charts.pacientesDiaUnidade) charts.pacientesDiaUnidade.destroy();
 
@@ -282,32 +255,19 @@ function updateChartPacientesDiaUnidade() {
             datasets: [{
                 label: 'Pacientes Agendados',
                 data: sortedData.map(item => item[1]),
-                backgroundColor: '#1e3a8a', // azul escuro
+                backgroundColor: '#1e3a8a',
                 borderColor: '#1e40af',
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { weight: 'bold', size: 15 },
-                    anchor: 'center',
-                    align: 'center'
-                }
-            },
-            scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxRotation: 45 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
         }
     });
 }
 
-// Gráfico 2: Pacientes agendados por mês e unidade de saúde (verde escuro)
 function updateChartPacientesMesUnidade() {
     const monthUnidadeCount = {};
     filteredData.forEach(item => {
@@ -321,10 +281,7 @@ function updateChartPacientesMesUnidade() {
         }
     });
 
-    const sortedData = Object.entries(monthUnidadeCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
+    const sortedData = Object.entries(monthUnidadeCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const ctx = document.getElementById('chartPacientesMesUnidade').getContext('2d');
     if (charts.pacientesMesUnidade) charts.pacientesMesUnidade.destroy();
 
@@ -335,32 +292,19 @@ function updateChartPacientesMesUnidade() {
             datasets: [{
                 label: 'Pacientes Agendados',
                 data: sortedData.map(item => item[1]),
-                backgroundColor: '#14532d', // verde escuro
+                backgroundColor: '#14532d',
                 borderColor: '#166534',
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { weight: 'bold', size: 15 },
-                    anchor: 'center',
-                    align: 'center'
-                }
-            },
-            scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxRotation: 45 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
         }
     });
 }
 
-// Gráfico 3: Pacientes agendados por dia e laboratório de coleta (roxo escuro)
 function updateChartPacientesDiaLaboratorio() {
     const dayLabCount = {};
     filteredData.forEach(item => {
@@ -370,10 +314,7 @@ function updateChartPacientesDiaLaboratorio() {
         }
     });
 
-    const sortedData = Object.entries(dayLabCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
+    const sortedData = Object.entries(dayLabCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const ctx = document.getElementById('chartPacientesDiaLaboratorio').getContext('2d');
     if (charts.pacientesDiaLaboratorio) charts.pacientesDiaLaboratorio.destroy();
 
@@ -384,32 +325,19 @@ function updateChartPacientesDiaLaboratorio() {
             datasets: [{
                 label: 'Pacientes Agendados',
                 data: sortedData.map(item => item[1]),
-                backgroundColor: '#581c87', // roxo escuro
+                backgroundColor: '#581c87',
                 borderColor: '#6b21a8',
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { weight: 'bold', size: 15 },
-                    anchor: 'center',
-                    align: 'center'
-                }
-            },
-            scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxRotation: 45 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
         }
     });
 }
 
-// Gráfico 4: Pacientes agendados por mês e laboratório de coleta (vermelho escuro)
 function updateChartPacientesMesLaboratorio() {
     const monthLabCount = {};
     filteredData.forEach(item => {
@@ -423,10 +351,7 @@ function updateChartPacientesMesLaboratorio() {
         }
     });
 
-    const sortedData = Object.entries(monthLabCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
+    const sortedData = Object.entries(monthLabCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const ctx = document.getElementById('chartPacientesMesLaboratorio').getContext('2d');
     if (charts.pacientesMesLaboratorio) charts.pacientesMesLaboratorio.destroy();
 
@@ -437,62 +362,39 @@ function updateChartPacientesMesLaboratorio() {
             datasets: [{
                 label: 'Pacientes Agendados',
                 data: sortedData.map(item => item[1]),
-                backgroundColor: '#7f1d1d', // vermelho escuro
+                backgroundColor: '#7f1d1d',
                 borderColor: '#991b1b',
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { weight: 'bold', size: 15 },
-                    anchor: 'center',
-                    align: 'center'
-                }
-            },
-            scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxRotation: 45 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
         }
     });
 }
 
-// Gráfico 5: Vagas livres por dia e unidade de saúde (rosa escuro)
 function updateChartVagasLivresDiaUnidade() {
-    // Calcular vagas livres baseado nos slots disponíveis vs ocupados
     const dayUnidadeSlots = {};
     const dayUnidadeOccupied = {};
     
-    // Primeiro, contar slots ocupados (com pacientes)
     filteredData.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude) {
             const key = `${item.dataAgendamento} - ${item.unidadeSaude}`;
             dayUnidadeSlots[key] = (dayUnidadeSlots[key] || 0) + 1;
-            
             if (item.nomePaciente && item.nomePaciente.trim() !== '') {
                 dayUnidadeOccupied[key] = (dayUnidadeOccupied[key] || 0) + 1;
             }
         }
     });
     
-    // Calcular vagas livres
     const freeSlots = {};
     Object.keys(dayUnidadeSlots).forEach(key => {
-        const total = dayUnidadeSlots[key];
-        const occupied = dayUnidadeOccupied[key] || 0;
-        freeSlots[key] = total - occupied;
+        freeSlots[key] = dayUnidadeSlots[key] - (dayUnidadeOccupied[key] || 0);
     });
 
-    const sortedData = Object.entries(freeSlots)
-        .filter(item => item[1] > 0) // Só mostrar onde há vagas livres
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
+    const sortedData = Object.entries(freeSlots).filter(item => item[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const ctx = document.getElementById('chartVagasLivresDiaUnidade').getContext('2d');
     if (charts.vagasLivresDiaUnidade) charts.vagasLivresDiaUnidade.destroy();
 
@@ -503,12 +405,61 @@ function updateChartVagasLivresDiaUnidade() {
             datasets: [{
                 label: 'Vagas Livres',
                 data: sortedData.map(item => item[1]),
-                backgroundColor: '#be185d', // rosa escuro
+                backgroundColor: '#be185d',
                 borderColor: '#db2777',
                 borderWidth: 1
             }]
         },
         options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
+        }
+    });
+}
+
+// Gráfico 6: Vagas livres por mês e unidade de saúde (cinza escuro) - **ALTERADO**
+function updateChartVagasLivresMesUnidade() {
+    const monthUnidadeSlots = {};
+    const monthUnidadeOccupied = {};
+    
+    filteredData.forEach(item => {
+        if (item.dataAgendamento && item.unidadeSaude) {
+            const date = parseDate(item.dataAgendamento);
+            if (date) {
+                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+                const key = `${monthYear} - ${item.unidadeSaude}`;
+                monthUnidadeSlots[key] = (monthUnidadeSlots[key] || 0) + 1;
+                if (item.nomePaciente && item.nomePaciente.trim() !== '') {
+                    monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
+                }
+            }
+        }
+    });
+    
+    const freeSlots = {};
+    Object.keys(monthUnidadeSlots).forEach(key => {
+        freeSlots[key] = monthUnidadeSlots[key] - (monthUnidadeOccupied[key] || 0);
+    });
+
+    const sortedData = Object.entries(freeSlots).filter(item => item[1] > 0).sort((a, b) => a[1] - b[1]).slice(0, 10);
+    const ctx = document.getElementById('chartVagasLivresMesUnidade').getContext('2d');
+    if (charts.vagasLivresMesUnidade) charts.vagasLivresMesUnidade.destroy();
+
+    charts.vagasLivresMesUnidade = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(item => item[0]),
+            datasets: [{
+                label: 'Vagas Livres',
+                data: sortedData.map(item => item[1]),
+                backgroundColor: '#374151',
+                borderColor: '#4b5563',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y', // <-- Eixo horizontal
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
@@ -521,40 +472,114 @@ function updateChartVagasLivresDiaUnidade() {
                 }
             },
             scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxRotation: 45 } }
+                x: { beginAtZero: true }, // O eixo X agora representa os valores
+                y: { ticks: { autoSkip: false } } // O eixo Y agora tem os rótulos
             }
         }
     });
 }
 
-// Gráfico 6: Vagas livres por mês e unidade de saúde (cinza escuro)
-function updateChartVagasLivresMesUnidade() {
-    // Calcular vagas livres por mês
-    const monthUnidadeSlots = {};
-    const monthUnidadeOccupied = {};
-    
+function updateChartUltimaDataAgendamento() {
+    const lastDateByLab = {};
     filteredData.forEach(item => {
-        if (item.dataAgendamento && item.unidadeSaude) {
+        if (item.dataAgendamento && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
             const date = parseDate(item.dataAgendamento);
             if (date) {
-                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-                const key = `${monthYear} - ${item.unidadeSaude}`;
-                monthUnidadeSlots[key] = (monthUnidadeSlots[key] || 0) + 1;
-                
-                if (item.nomePaciente && item.nomePaciente.trim() !== '') {
-                    monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
+                if (!lastDateByLab[item.laboratorioColeta] || date > lastDateByLab[item.laboratorioColeta]) {
+                    lastDateByLab[item.laboratorioColeta] = date;
                 }
             }
         }
     });
-    
-    // Calcular vagas livres
-    const freeSlots = {};
-    Object.keys(monthUnidadeSlots).forEach(key => {
-        const total = monthUnidadeSlots[key];
-        const occupied = monthUnidadeOccupied[key] || 0;
-        freeSlots[key] = total - occupied;
-    });
 
-    const sortedData = Object.entries(freeSlots)
+    const sortedData = Object.entries(lastDateByLab)
+        .map(([lab, date]) => [lab, date.toLocaleDateString('pt-BR')])
+        .sort((a, b) => new Date(b[1].split('/').reverse().join('-')) - new Date(a[1].split('/').reverse().join('-')));
+
+    const ctx = document.getElementById('chartUltimaDataAgendamento').getContext('2d');
+    if (charts.ultimaDataAgendamento) charts.ultimaDataAgendamento.destroy();
+
+    charts.ultimaDataAgendamento = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(item => item[0]),
+            datasets: [{
+                label: 'Última Data de Agendamento',
+                data: sortedData.map((item, index) => index + 1),
+                backgroundColor: '#ea580c',
+                borderColor: '#f97316',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    color: '#fff', font: { weight: 'bold', size: 12 }, anchor: 'center', align: 'center',
+                    formatter: (value, context) => sortedData[context.dataIndex][1]
+                }
+            },
+            scales: { x: { display: false }, y: { beginAtZero: true } }
+        }
+    });
+}
+
+// Função da tabela - **ALTERADA**
+function updateTable() {
+    if (dataTable) {
+        dataTable.destroy();
+    }
+    
+    const tableBody = document.querySelector('#agendamentosTable tbody');
+    tableBody.innerHTML = filteredData.map(item => `
+        <tr>
+            <td>${item.unidadeSaude || ''}</td>
+            <td>${item.dataAgendamento || ''}</td>
+            <td>${item.horarioAgendamento || ''}</td>
+            <td>${item.prontuarioVivver || ''}</td>
+            <td>${item.observacaoUnidadeSaude || ''}</td>
+            <td>${item.perfilPacienteExame || ''}</td>
+            <td>${item.laboratorioColeta || ''}</td>
+        </tr>
+    `).join('');
+    
+    dataTable = $('#agendamentosTable').DataTable({
+        language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json' },
+        pageLength: 15,
+        responsive: true,
+        order: [[1, 'desc']]
+    });
+}
+
+function clearFilters() {
+    document.getElementById('dataFilter').value = '';
+    ['unidadeSaudeFilter', 'horarioFilter', 'laboratorioColetaFilter'].forEach(id => {
+        const select = document.getElementById(id);
+        Array.from(select.options).forEach(option => option.selected = false);
+    });
+    applyFilters();
+}
+
+// Função de exportar para Excel - **ALTERADA**
+function exportToExcel() {
+    const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+        'UNIDADE DE SAÚDE': item.unidadeSaude || '',
+        'DATA': item.dataAgendamento || '',
+        'HORÁRIO': item.horarioAgendamento || '',
+        'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
+        'OBSERVAÇÃO/ UNIDADE DE SAÚDE': item.observacaoUnidadeSaude || '',
+        'PERFIL DO PACIENTE OU TIPO DO EXAME': item.perfilPacienteExame || '',
+        'Laboratório de Coleta': item.laboratorioColeta || ''
+    })));
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Agendamentos');
+    XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+    setInterval(loadData, 300000); // Auto-atualiza a cada 5 minutos
+});
