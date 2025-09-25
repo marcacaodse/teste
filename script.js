@@ -3,11 +3,23 @@ let filteredData = [];
 let charts = {};
 let dataTable;
 
+// URL da API do Google Apps Script (deve ser substituída pela URL real após o deploy)
+const GOOGLE_SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Gtan6GhpDO5ViVuNMiT0AGm3F5I5iZSIYhWHVJ3ga6E/export?format=csv&gid=64540129';
+
+// Configurações de atualização automática
+const AUTO_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutos em milissegundos
+let autoUpdateTimer = null;
+
+/**
+ * Função principal para carregar dados da API do Google Apps Script
+ */
 async function loadData() {
     try {
-        document.getElementById('connectionStatus').className = 'status-indicator status-online';
-        document.getElementById('connectionText').textContent = 'Carregando...';
-        const response = await fetch('https://docs.google.com/spreadsheets/d/1Gtan6GhpDO5ViVuNMiT0AGm3F5I5iZSIYhWHVJ3ga6E/export?format=csv&gid=64540129' );
+        // Atualiza o status de conexão
+        updateConnectionStatus('loading', 'Carregando...');
+        
+        // Faz a requisição para a API do Google Apps Script
+        const response = await fetch(GOOGLE_SHEETS_CSV_URL);
         const csvText = await response.text();
         if (!csvText || csvText.length < 100) throw new Error('Dados CSV vazios ou inválidos');
 
@@ -42,19 +54,154 @@ async function loadData() {
             }
         }
         filteredData = [...allData];
+        
+        // Atualiza a interface
         updateFilters();
         updateDashboard();
-        document.getElementById('connectionStatus').className = 'status-indicator status-online';
-        document.getElementById('connectionText').textContent = 'Conectado';
-        document.getElementById('lastUpdate').textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
+        
+        // Atualiza o status de conexão
+        updateConnectionStatus('online', 'Conectado');
+        updateLastUpdateTime();
+        
+        console.log(`Dados carregados com sucesso: ${allData.length} registros`);
+        
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        document.getElementById('connectionStatus').className = 'status-indicator status-offline';
-        document.getElementById('connectionText').textContent = 'Erro de conexão';
-        alert('Erro ao carregar dados da planilha. Verifique a conexão e tente novamente.');
+        
+        // Atualiza o status de conexão para erro
+        updateConnectionStatus('offline', 'Erro de conexão');
+        
+        // Exibe mensagem de erro para o usuário
+        showErrorMessage(`Erro ao carregar dados: ${error.message}`);
     }
 }
 
+/**
+ * Atualiza o status de conexão na interface
+ */
+function updateConnectionStatus(status, text) {
+    const statusElement = document.getElementById('connectionStatus');
+    const textElement = document.getElementById('connectionText');
+    
+    if (statusElement && textElement) {
+        // Remove classes anteriores
+        statusElement.className = 'status-indicator';
+        
+        // Adiciona a nova classe baseada no status
+        switch (status) {
+            case 'online':
+                statusElement.classList.add('status-online');
+                break;
+            case 'offline':
+                statusElement.classList.add('status-offline');
+                break;
+            case 'loading':
+                statusElement.classList.add('status-loading');
+                break;
+        }
+        
+        textElement.textContent = text;
+    }
+}
+
+/**
+ * Atualiza o horário da última atualização
+ */
+function updateLastUpdateTime() {
+    const lastUpdateElement = document.getElementById('lastUpdate');
+    if (lastUpdateElement) {
+        const now = new Date();
+        lastUpdateElement.textContent = `Última atualização: ${now.toLocaleString('pt-BR')}`;
+    }
+}
+
+/**
+ * Exibe mensagem de erro para o usuário
+ */
+function showErrorMessage(message) {
+    // Cria ou atualiza um elemento de alerta na página
+    let alertElement = document.getElementById('error-alert');
+    
+    if (!alertElement) {
+        alertElement = document.createElement('div');
+        alertElement.id = 'error-alert';
+        alertElement.className = 'alert alert-error';
+        alertElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 400px;
+        `;
+        document.body.appendChild(alertElement);
+    }
+    
+    alertElement.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>${message}</span>
+            <button onclick="hideErrorMessage()" style="margin-left: auto; background: none; border: none; color: #dc2626; cursor: pointer; font-size: 16px;">×</button>
+        </div>
+    `;
+    
+    // Remove automaticamente após 10 segundos
+    setTimeout(() => {
+        hideErrorMessage();
+    }, 10000);
+}
+
+/**
+ * Oculta a mensagem de erro
+ */
+function hideErrorMessage() {
+    const alertElement = document.getElementById('error-alert');
+    if (alertElement) {
+        alertElement.remove();
+    }
+}
+
+/**
+ * Inicia a atualização automática
+ */
+function startAutoUpdate() {
+    // Para qualquer timer existente
+    stopAutoUpdate();
+    
+    // Inicia um novo timer
+    autoUpdateTimer = setInterval(() => {
+        console.log('Executando atualização automática...');
+        loadData();
+    }, AUTO_UPDATE_INTERVAL);
+    
+    console.log(`Atualização automática iniciada (intervalo: ${AUTO_UPDATE_INTERVAL / 1000}s)`);
+}
+
+/**
+ * Para a atualização automática
+ */
+function stopAutoUpdate() {
+    if (autoUpdateTimer) {
+        clearInterval(autoUpdateTimer);
+        autoUpdateTimer = null;
+        console.log('Atualização automática parada');
+    }
+}
+
+/**
+ * Função para atualização manual (chamada pelo botão)
+ */
+function manualUpdate() {
+    console.log('Atualização manual solicitada');
+    loadData();
+}
+
+// Função parseCSVLine (necessária para processar o CSV)
 function parseCSVLine(line) {
     const result = [];
     let current = '', inQuotes = false;
@@ -83,6 +230,8 @@ function updateFilters() {
 
 function updateSelectOptions(selectId, options) {
     const select = document.getElementById(selectId);
+    if (!select) return;
+    
     select.innerHTML = '';
     if (!select.multiple) select.add(new Option('Todos', ''));
     options.forEach(option => select.add(new Option(option, option)));
@@ -93,15 +242,19 @@ function applyFilters() {
     const horarioFilter = Array.from(document.getElementById('horarioFilter').selectedOptions).map(o => o.value);
     const dataFilter = document.getElementById('dataFilter').value;
     const laboratorioColetaFilter = Array.from(document.getElementById('laboratorioColetaFilter').selectedOptions).map(o => o.value);
+    
     filteredData = allData.filter(item => {
         const itemDate = parseDate(item.dataAgendamento);
         const filterDate = dataFilter ? new Date(dataFilter) : null;
+        
         if (unidadeSaudeFilter.length && !unidadeSaudeFilter.includes(item.unidadeSaude)) return false;
         if (horarioFilter.length && !horarioFilter.includes(item.horarioAgendamento)) return false;
         if (laboratorioColetaFilter.length && !laboratorioColetaFilter.includes(item.laboratorioColeta)) return false;
         if (filterDate && (!itemDate || itemDate.toDateString() !== filterDate.toDateString())) return false;
+        
         return true;
     });
+    
     updateDashboard();
 }
 
@@ -128,6 +281,8 @@ function updateDashboard() {
 
 function createSummaryTableWithTotal(containerId, data, columns, totalColumnKey) {
     const tableBody = document.getElementById(containerId);
+    if (!tableBody) return;
+    
     let total = 0;
     
     const rowsHtml = data.map(row => {
@@ -163,9 +318,11 @@ function updateChartUltimaDataUnidade() {
         .map(([unidade, date]) => ({ unidade, date: date.toLocaleDateString('pt-BR') }))
         .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
-    const ctx = document.getElementById('chartUltimaDataUnidade').getContext('2d');
+    const ctx = document.getElementById('chartUltimaDataUnidade');
+    if (!ctx) return;
+    
     if (charts.ultimaDataUnidade) charts.ultimaDataUnidade.destroy();
-    charts.ultimaDataUnidade = new Chart(ctx, {
+    charts.ultimaDataUnidade = new Chart(ctx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: sortedData.map(item => item.unidade),
@@ -200,9 +357,11 @@ function updateChartUltimaDataLaboratorio() {
         .map(([lab, date]) => ({ lab, date: date.toLocaleDateString('pt-BR') }))
         .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
-    const ctx = document.getElementById('chartUltimaDataLaboratorio').getContext('2d');
+    const ctx = document.getElementById('chartUltimaDataLaboratorio');
+    if (!ctx) return;
+    
     if (charts.ultimaDataLaboratorio) charts.ultimaDataLaboratorio.destroy();
-    charts.ultimaDataLaboratorio = new Chart(ctx, {
+    charts.ultimaDataLaboratorio = new Chart(ctx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: sortedData.map(item => item.lab),
@@ -323,7 +482,6 @@ function updateTablePacientesMesLaboratorio() {
     createSummaryTableWithTotal('tabelaPacientesMesLaboratorio', data, [{ key: 'mesAno' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }], 'count');
 }
 
-// --- NOVA FUNÇÃO ---
 function updateTableVagasLivresMesLaboratorio() {
     const monthLabSlots = {}, monthLabOccupied = {};
     filteredData.forEach(item => {
@@ -348,7 +506,10 @@ function updateTableVagasLivresMesLaboratorio() {
 
 function updateTable() {
     if (dataTable) dataTable.destroy();
+    
     const tableBody = document.querySelector('#agendamentosTable tbody');
+    if (!tableBody) return;
+    
     tableBody.innerHTML = filteredData.map(item => `
         <tr>
             <td>${item.unidadeSaude || ''}</td>
@@ -360,6 +521,7 @@ function updateTable() {
             <td>${item.laboratorioColeta || ''}</td>
         </tr>
     `).join('');
+    
     dataTable = $('#agendamentosTable').DataTable({
         language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json' },
         pageLength: 15,
@@ -368,10 +530,13 @@ function updateTable() {
     });
 }
 
-function clearFilters() {
+function clearAllFilters() {
     document.getElementById('dataFilter').value = '';
     ['unidadeSaudeFilter', 'horarioFilter', 'laboratorioColetaFilter'].forEach(id => {
-        Array.from(document.getElementById(id).options).forEach(option => option.selected = false);
+        const select = document.getElementById(id);
+        if (select) {
+            Array.from(select.options).forEach(option => option.selected = false);
+        }
     });
     applyFilters();
 }
@@ -394,7 +559,64 @@ function exportToExcel() {
     XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
+// Inicialização quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Inicializando painel...');
+    
+    // Carrega os dados inicialmente
     loadData();
-    setInterval(loadData, 300000);
+    
+    // Inicia a atualização automática
+    startAutoUpdate();
+    
+    // Adiciona event listeners para os filtros
+    ['unidadeSaudeFilter', 'horarioFilter', 'laboratorioColetaFilter', 'dataFilter'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', applyFilters);
+        }
+    });
+    
+    // Event listener para o botão de atualização manual
+    const updateButton = document.querySelector('button[onclick="loadData()"]');
+    if (updateButton) {
+        updateButton.setAttribute('onclick', 'manualUpdate()');
+    }
 });
+
+// Limpa os timers quando a página é fechada
+window.addEventListener('beforeunload', () => {
+    stopAutoUpdate();
+});
+
+// Adiciona estilos CSS para o status de loading
+const loadingStyles = `
+    .status-loading {
+        background-color: #f59e0b;
+        animation: pulse 1s infinite;
+    }
+    
+    .alert {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .alert-error {
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+
+// Adiciona os estilos ao head da página
+const styleSheet = document.createElement('style');
+styleSheet.textContent = loadingStyles;
+document.head.appendChild(styleSheet);
