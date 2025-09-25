@@ -1,5 +1,6 @@
 let allData = [];
 let filteredData = [];
+let charts = {}; // Objeto para guardar as instâncias dos gráficos
 let dataTable;
 
 async function loadData() {
@@ -110,7 +111,11 @@ function parseDate(dateStr) {
     return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : null;
 }
 
+Chart.register(ChartDataLabels);
+
 function updateDashboard() {
+    updateChartUltimaDataUnidade();
+    updateChartUltimaDataLaboratorio();
     updateTable();
     updateTablePacientesDiaUnidade();
     updateTablePacientesDiaLaboratorio();
@@ -127,6 +132,80 @@ function createSummaryTable(containerId, data, columns) {
             ${columns.map(col => `<td class="px-6 py-4 ${col.isNumeric ? 'font-medium text-gray-900' : ''}">${row[col.key]}</td>`).join('')}
         </tr>
     `).join('');
+}
+
+function updateChartUltimaDataUnidade() {
+    const lastDateByUnidade = {};
+    filteredData.forEach(item => {
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.unidadeSaude && item.nomePaciente && item.nomePaciente.trim() !== '') {
+            if (!lastDateByUnidade[item.unidadeSaude] || date > lastDateByUnidade[item.unidadeSaude]) {
+                lastDateByUnidade[item.unidadeSaude] = date;
+            }
+        }
+    });
+    const sortedData = Object.entries(lastDateByUnidade)
+        .map(([unidade, date]) => ({ unidade, date: date.toLocaleDateString('pt-BR') }))
+        .sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+    const ctx = document.getElementById('chartUltimaDataUnidade').getContext('2d');
+    if (charts.ultimaDataUnidade) charts.ultimaDataUnidade.destroy();
+    charts.ultimaDataUnidade = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(item => item.unidade),
+            datasets: [{
+                label: 'Última Data',
+                data: sortedData.map((_, i) => sortedData.length - i),
+                backgroundColor: '#ef4444',
+            }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex].date }
+            },
+            scales: { x: { display: false } }
+        }
+    });
+}
+
+function updateChartUltimaDataLaboratorio() {
+    const lastDateByLab = {};
+    filteredData.forEach(item => {
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
+            if (!lastDateByLab[item.laboratorioColeta] || date > lastDateByLab[item.laboratorioColeta]) {
+                lastDateByLab[item.laboratorioColeta] = date;
+            }
+        }
+    });
+    const sortedData = Object.entries(lastDateByLab)
+        .map(([lab, date]) => ({ lab, date: date.toLocaleDateString('pt-BR') }))
+        .sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+    const ctx = document.getElementById('chartUltimaDataLaboratorio').getContext('2d');
+    if (charts.ultimaDataLaboratorio) charts.ultimaDataLaboratorio.destroy();
+    charts.ultimaDataLaboratorio = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(item => item.lab),
+            datasets: [{
+                label: 'Última Data',
+                data: sortedData.map((_, i) => sortedData.length - i),
+                backgroundColor: '#ea580c',
+            }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex].date }
+            },
+            scales: { x: { display: false } }
+        }
+    });
 }
 
 function updateTablePacientesDiaUnidade() {
@@ -272,17 +351,23 @@ function clearFilters() {
 }
 
 function exportToExcel() {
-    const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
-        'UNIDADE DE SAÚDE': item.unidadeSaude || '',
-        'DATA': item.dataAgendamento || '',
-        'HORÁRIO': item.horarioAgendamento || '',
-        'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
-        'OBSERVAÇÃO/ UNIDADE DE SAÚDE': item.observacaoUnidadeSaude || '',
-        'PERFIL DO PACIENTE OU TIPO DO EXAME': item.perfilPacienteExame || '',
-        'Laboratório de Coleta': item.laboratorioColeta || ''
-    })));
+    const sheets = {
+        'Todos_Agendamentos': filteredData.map(item => ({
+            'UNIDADE DE SAÚDE': item.unidadeSaude || '',
+            'DATA': item.dataAgendamento || '',
+            'HORÁRIO': item.horarioAgendamento || '',
+            'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
+            'OBSERVAÇÃO/ UNIDADE DE SAÚDE': item.observacaoUnidadeSaude || '',
+            'PERFIL DO PACIENTE OU TIPO DO EXAME': item.perfilPacienteExame || '',
+            'Laboratório de Coleta': item.laboratorioColeta || ''
+        }))
+    };
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Agendamentos');
+    for (const sheetName in sheets) {
+        const ws = XLSX.utils.json_to_sheet(sheets[sheetName]);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
     XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
