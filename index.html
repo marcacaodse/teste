@@ -75,28 +75,12 @@
     <!-- Gráficos -->
     <div class="mx-4 mb-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 charts-grid">
-            <!-- Gráfico 1: Pacientes agendados por dia e unidade de saúde -->
-            <div class="card">
-                <div class="p-4 border-b">
-                    <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-chart-bar mr-2 text-blue-500"></i>Pacientes Agendados por Dia e Unidade de Saúde</h3>
-                </div>
-                <div class="chart-container"><canvas id="chartPacientesDiaUnidade"></canvas></div>
-            </div>
-
             <!-- Gráfico 2: Pacientes agendados por mês e unidade de saúde -->
             <div class="card">
                 <div class="p-4 border-b">
                     <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-chart-bar mr-2 text-green-500"></i>Pacientes Agendados por Mês e Unidade de Saúde</h3>
                 </div>
                 <div class="chart-container"><canvas id="chartPacientesMesUnidade"></canvas></div>
-            </div>
-
-            <!-- Gráfico 3: Pacientes agendados por dia e laboratório de coleta -->
-            <div class="card">
-                <div class="p-4 border-b">
-                    <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-chart-bar mr-2 text-purple-500"></i>Pacientes Agendados por Dia e Laboratório de Coleta</h3>
-                </div>
-                <div class="chart-container"><canvas id="chartPacientesDiaLaboratorio"></canvas></div>
             </div>
 
             <!-- Gráfico 4: Pacientes agendados por mês e laboratório de coleta -->
@@ -133,7 +117,7 @@
         </div>
     </div>
 
-    <!-- Tabela -->
+    <!-- Tabela Principal -->
     <div class="mx-4 mb-6">
         <div class="card">
             <div class="p-4 border-b">
@@ -161,6 +145,56 @@
             </div>
         </div>
     </div>
+
+    <!-- Novas Tabelas de Resumo -->
+    <div class="mx-4 mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tabela de Vagas por Unidade de Saúde -->
+        <div class="card">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-hospital-user mr-2 text-blue-500"></i>Vagas Utilizadas por Dia e Unidade de Saúde
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Data</th>
+                            <th scope="col" class="px-6 py-3">Unidade de Saúde</th>
+                            <th scope="col" class="px-6 py-3">Vagas Utilizadas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaResumoUnidade">
+                        <!-- Dados serão inseridos via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela de Vagas por Laboratório -->
+        <div class="card">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-vial mr-2 text-purple-500"></i>Vagas Utilizadas por Dia e Laboratório de Coleta
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Data</th>
+                            <th scope="col" class="px-6 py-3">Laboratório de Coleta</th>
+                            <th scope="col" class="px-6 py-3">Vagas Utilizadas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaResumoLaboratorio">
+                        <!-- Dados serão inseridos via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Bibliotecas de Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
