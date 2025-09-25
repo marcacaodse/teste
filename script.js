@@ -418,48 +418,70 @@ function updateChartVagasLivresDiaUnidade() {
     });
 }
 
-// Gráfico 6: Vagas livres por mês e unidade de saúde (cinza escuro) - **ALTERADO**
+// Gráfico 6: Vagas livres por mês e unidade de saúde - **ALTERADO**
 function updateChartVagasLivresMesUnidade() {
     const monthUnidadeSlots = {};
     const monthUnidadeOccupied = {};
     
+    // 1. Inicializa a contagem para todas as unidades de saúde com zero.
+    // Isso garante que todas as 9 unidades apareçam no gráfico, mesmo se não tiverem dados.
+    const date = new Date();
+    const currentMonthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+    UNIDADES_SAUDE.forEach(unidade => {
+        const key = `${currentMonthYear} - ${unidade}`;
+        monthUnidadeSlots[key] = 0;
+        monthUnidadeOccupied[key] = 0;
+    });
+
+    // 2. Processa os dados filtrados para contar vagas totais e ocupadas.
     filteredData.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude) {
-            const date = parseDate(item.dataAgendamento);
-            if (date) {
-                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            const itemDate = parseDate(item.dataAgendamento);
+            if (itemDate) {
+                const monthYear = `${itemDate.getMonth() + 1}/${itemDate.getFullYear()}`;
                 const key = `${monthYear} - ${item.unidadeSaude}`;
-                monthUnidadeSlots[key] = (monthUnidadeSlots[key] || 0) + 1;
+                
+                // Garante que a chave exista antes de incrementar
+                if (monthUnidadeSlots[key] === undefined) {
+                    monthUnidadeSlots[key] = 0;
+                    monthUnidadeOccupied[key] = 0;
+                }
+
+                monthUnidadeSlots[key]++;
                 if (item.nomePaciente && item.nomePaciente.trim() !== '') {
-                    monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
+                    monthUnidadeOccupied[key]++;
                 }
             }
         }
     });
     
+    // 3. Calcula as vagas livres.
     const freeSlots = {};
     Object.keys(monthUnidadeSlots).forEach(key => {
         freeSlots[key] = monthUnidadeSlots[key] - (monthUnidadeOccupied[key] || 0);
     });
 
-    const sortedData = Object.entries(freeSlots).filter(item => item[1] > 0).sort((a, b) => a[1] - b[1]).slice(0, 10);
+    // 4. Converte para array e ordena para uma visualização consistente.
+    const chartData = Object.entries(freeSlots)
+        .sort((a, b) => a[0].localeCompare(b[0])); // Ordena alfabeticamente pela chave (Mês - Unidade)
+
     const ctx = document.getElementById('chartVagasLivresMesUnidade').getContext('2d');
     if (charts.vagasLivresMesUnidade) charts.vagasLivresMesUnidade.destroy();
 
     charts.vagasLivresMesUnidade = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedData.map(item => item[0]),
+            labels: chartData.map(item => item[0]),
             datasets: [{
                 label: 'Vagas Livres',
-                data: sortedData.map(item => item[1]),
+                data: chartData.map(item => item[1]),
                 backgroundColor: '#374151',
                 borderColor: '#4b5563',
                 borderWidth: 1
             }]
         },
         options: {
-            indexAxis: 'y', // <-- Eixo horizontal
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
@@ -472,8 +494,8 @@ function updateChartVagasLivresMesUnidade() {
                 }
             },
             scales: {
-                x: { beginAtZero: true }, // O eixo X agora representa os valores
-                y: { ticks: { autoSkip: false } } // O eixo Y agora tem os rótulos
+                x: { beginAtZero: true },
+                y: { ticks: { autoSkip: false } }
             }
         }
     });
@@ -526,7 +548,6 @@ function updateChartUltimaDataAgendamento() {
     });
 }
 
-// Função da tabela - **ALTERADA**
 function updateTable() {
     if (dataTable) {
         dataTable.destroy();
@@ -562,7 +583,6 @@ function clearFilters() {
     applyFilters();
 }
 
-// Função de exportar para Excel - **ALTERADA**
 function exportToExcel() {
     const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
         'UNIDADE DE SAÚDE': item.unidadeSaude || '',
@@ -581,5 +601,5 @@ function exportToExcel() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadData();
-    setInterval(loadData, 300000); // Auto-atualiza a cada 5 minutos
+    setInterval(loadData, 300000);
 });
