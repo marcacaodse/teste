@@ -134,6 +134,7 @@ function createSummaryTable(containerId, data, columns) {
     `).join('');
 }
 
+// --- ALTERAÇÕES AQUI ---
 function updateChartUltimaDataUnidade() {
     const lastDateByUnidade = {};
     filteredData.forEach(item => {
@@ -164,13 +165,30 @@ function updateChartUltimaDataUnidade() {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex].date }
+                datalabels: {
+                    color: '#fff',
+                    font: { 
+                        weight: 'bold',
+                        size: 16 // Tamanho da fonte dentro da barra
+                    }, 
+                    formatter: (_, context) => sortedData[context.dataIndex].date 
+                }
             },
-            scales: { x: { display: false } }
+            scales: { 
+                x: { display: false },
+                y: {
+                    ticks: {
+                        font: {
+                            weight: 'bold' // Legenda do eixo Y em negrito
+                        }
+                    }
+                }
+            }
         }
     });
 }
 
+// --- E AQUI ---
 function updateChartUltimaDataLaboratorio() {
     const lastDateByLab = {};
     filteredData.forEach(item => {
@@ -201,13 +219,30 @@ function updateChartUltimaDataLaboratorio() {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex].date }
+                datalabels: {
+                    color: '#fff',
+                    font: { 
+                        weight: 'bold',
+                        size: 16 // Tamanho da fonte dentro da barra
+                    }, 
+                    formatter: (_, context) => sortedData[context.dataIndex].date 
+                }
             },
-            scales: { x: { display: false } }
+            scales: { 
+                x: { display: false },
+                y: {
+                    ticks: {
+                        font: {
+                            weight: 'bold' // Legenda do eixo Y em negrito
+                        }
+                    }
+                }
+            }
         }
     });
 }
 
+// O resto do código permanece igual...
 function updateTablePacientesDiaUnidade() {
     const dayUnidadeCount = {};
     filteredData.forEach(item => {
@@ -353,7 +388,6 @@ function clearFilters() {
 function exportToExcel() {
     const wb = XLSX.utils.book_new();
     
-    // Dados da tabela principal
     const mainData = filteredData.map(item => ({
         'UNIDADE DE SAÚDE': item.unidadeSaude || '',
         'DATA': item.dataAgendamento || '',
@@ -365,8 +399,6 @@ function exportToExcel() {
     }));
     const wsMain = XLSX.utils.json_to_sheet(mainData);
     XLSX.utils.book_append_sheet(wb, wsMain, 'Todos Agendamentos');
-
-    // Adicionar outras tabelas se desejar...
     
     XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
