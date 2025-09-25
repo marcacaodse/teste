@@ -139,7 +139,14 @@ function applyFilters() {
 
 function clearAllFilters() {
     document.getElementById('dataFilter').value = '';
-    Object.values(choicesInstances).forEach(choice => choice.clearStore());
+    // Itera sobre as instâncias do Choices e limpa a seleção de cada uma
+    Object.values(choicesInstances).forEach(choiceInstance => {
+        if (choiceInstance) {
+            choiceInstance.clearStore();
+        }
+    });
+    // A função applyFilters() já é chamada pelo evento 'change' do Choices.js,
+    // mas chamamos aqui para garantir que o filtro de data seja aplicado.
     applyFilters();
 }
 
@@ -318,44 +325,4 @@ function exportToExcel() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-});
-
-    `).join('');
-    dataTable = $('#agendamentosTable').DataTable({
-        language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json' },
-        pageLength: 15,
-        responsive: true,
-        order: [[1, 'desc']]
-    });
-}
-
-function clearFilters() {
-    document.getElementById('dataFilter').value = '';
-    ['unidadeSaudeFilter', 'horarioFilter', 'laboratorioColetaFilter'].forEach(id => {
-        Array.from(document.getElementById(id).options).forEach(option => option.selected = false);
-    });
-    applyFilters();
-}
-
-function exportToExcel() {
-    const wb = XLSX.utils.book_new();
-    
-    const mainData = filteredData.map(item => ({
-        'UNIDADE DE SAÚDE': item.unidadeSaude || '',
-        'DATA': item.dataAgendamento || '',
-        'HORÁRIO': item.horarioAgendamento || '',
-        'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
-        'OBSERVAÇÃO': item.observacaoUnidadeSaude || '',
-        'PERFIL/EXAME': item.perfilPacienteExame || '',
-        'Laboratório': item.laboratorioColeta || ''
-    }));
-    const wsMain = XLSX.utils.json_to_sheet(mainData);
-    XLSX.utils.book_append_sheet(wb, wsMain, 'Todos Agendamentos');
-    
-    XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    setInterval(loadData, 300000);
 });
