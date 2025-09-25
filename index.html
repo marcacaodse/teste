@@ -15,9 +15,7 @@
     <div class="card mx-4 my-4 p-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div class="flex items-center mb-4 md:mb-0">
-                <div class="bg-blue-500 p-3 rounded-lg mr-4">
-                    <i class="fas fa-table text-white text-2xl"></i>
-                </div>
+                <div class="bg-blue-500 p-3 rounded-lg mr-4"><i class="fas fa-table text-white text-2xl"></i></div>
                 <div>
                     <h1 class="text-3xl font-bold text-gray-800">Distrito Sanitário Eldorado</h1>
                     <h2 class="text-xl font-semibold text-gray-700">Diretora: Wandha Karine dos Santos</h2>
@@ -63,6 +61,18 @@
         </div>
     </div>
 
+    <!-- Gráficos de Última Atualização -->
+    <div class="mx-4 mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-alt mr-2 text-red-500"></i>Última Data de Agendamento por Unidade</h3></div>
+            <div class="chart-container"><canvas id="chartUltimaDataUnidade"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-alt mr-2 text-orange-500"></i>Última Data de Agendamento por Laboratório</h3></div>
+            <div class="chart-container"><canvas id="chartUltimaDataLaboratorio"></canvas></div>
+        </div>
+    </div>
+
     <!-- Tabela Principal -->
     <div class="mx-4 mb-6">
         <div class="card">
@@ -88,97 +98,67 @@
 
     <!-- Tabelas de Resumo -->
     <div class="mx-4 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Vagas Utilizadas por Dia e Unidade -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-hospital-user mr-2 text-blue-500"></i>Vagas Utilizadas por Dia e Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Data</th>
-                            <th scope="col" class="px-6 py-3">Unidade</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaResumoUnidade"></tbody>
                 </table>
             </div>
         </div>
-        <!-- Vagas Utilizadas por Dia e Laboratório -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-vial mr-2 text-purple-500"></i>Vagas Utilizadas por Dia e Laboratório</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Data</th>
-                            <th scope="col" class="px-6 py-3">Laboratório</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaResumoLaboratorio"></tbody>
                 </table>
             </div>
         </div>
-        <!-- Vagas Livres por Dia e Unidade -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-bed mr-2 text-pink-500"></i>Vagas Livres por Dia e Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Data</th>
-                            <th scope="col" class="px-6 py-3">Unidade</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaVagasLivresDia"></tbody>
                 </table>
             </div>
         </div>
-        <!-- Vagas Livres por Mês e Unidade -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-check mr-2 text-gray-500"></i>Vagas Livres por Mês e Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Mês/Ano</th>
-                            <th scope="col" class="px-6 py-3">Unidade</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaVagasLivresMes"></tbody>
                 </table>
             </div>
         </div>
-        <!-- Vagas Utilizadas por Mês e Unidade -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-alt mr-2 text-green-500"></i>Vagas Utilizadas por Mês e Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Mês/Ano</th>
-                            <th scope="col" class="px-6 py-3">Unidade</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaPacientesMesUnidade"></tbody>
                 </table>
             </div>
         </div>
-        <!-- Vagas Utilizadas por Mês e Laboratório -->
         <div class="card">
             <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-day mr-2 text-red-500"></i>Vagas Utilizadas por Mês e Laboratório</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Mês/Ano</th>
-                            <th scope="col" class="px-6 py-3">Laboratório</th>
-                            <th scope="col" class="px-6 py-3">Vagas</th>
-                        </tr>
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
                     </thead>
                     <tbody id="tabelaPacientesMesLaboratorio"></tbody>
                 </table>
@@ -187,8 +167,12 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="script.js"></script>
+    
+    <!-- LINHA CORRIGIDA -->
+    <script src="style.css"></script>
 </body>
 </html>
