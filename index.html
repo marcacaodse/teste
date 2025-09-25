@@ -8,8 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    
-    <!-- Carrega o ficheiro de CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50">
@@ -75,6 +73,94 @@
         </div>
     </div>
 
+    <!-- Tabelas de Resumo (AGORA ANTES DA TABELA PRINCIPAL) -->
+    <div class="mx-4 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Vagas Utilizadas por Dia e Unidade -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-hospital-user mr-2 text-blue-500"></i>Vagas Utilizadas por Dia/Unidade</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaResumoUnidade"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Vagas Utilizadas por Dia e Laboratório -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-vial mr-2 text-purple-500"></i>Vagas Utilizadas por Dia/Laboratório</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaResumoLaboratorio"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Vagas Livres por Dia e Unidade -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-bed mr-2 text-pink-500"></i>Vagas Livres por Dia/Unidade</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaVagasLivresDia"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Vagas Livres por Mês e Unidade -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-check mr-2 text-gray-500"></i>Vagas Livres por Mês/Unidade</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaVagasLivresMes"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Vagas Utilizadas por Mês e Unidade -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-alt mr-2 text-green-500"></i>Vagas Utilizadas por Mês/Unidade</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaPacientesMesUnidade"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Vagas Utilizadas por Mês e Laboratório -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-day mr-2 text-red-500"></i>Vagas Utilizadas por Mês/Laboratório</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaPacientesMesLaboratorio"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- NOVA TABELA: Vagas Livres por Mês e Laboratório -->
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-flask mr-2 text-teal-500"></i>Vagas Livres por Mês/Laboratório</h3></div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
+                    <tbody id="tabelaVagasLivresMesLaboratorio"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabela Principal -->
     <div class="mx-4 mb-6">
         <div class="card">
@@ -98,83 +184,11 @@
         </div>
     </div>
 
-    <!-- Tabelas de Resumo -->
-    <div class="mx-4 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-hospital-user mr-2 text-blue-500"></i>Quantidade de Vagas Utilizadas por Dia/ Unidade de Saúde</h3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaResumoUnidade"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-vial mr-2 text-purple-500"></i>Quantidade de Vagas Utilizadas por Dia / Laboratório de Coleta</h3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaResumoLaboratorio"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-bed mr-2 text-pink-500"></i>Quantidade de Vagas Livres por Dia / Unidade de Saúde</h3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaVagasLivresDia"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-check mr-2 text-gray-500"></i>Quantidade de Vagas Livres por Mês / Unidade de Saúdeh3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaVagasLivresMes"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-alt mr-2 text-green-500"></i>Qantidade de Vagas Utilizadas por Mês / Unidade de Saúde</h3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaPacientesMesUnidade"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="p-4 border-b"><h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-calendar-day mr-2 text-red-500"></i>Quantidade de Vagas Utilizadas por Mês / Laboratório de Coleta</h3></div>
-            <div class="overflow-y-auto" style="max-height: 400px;">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
-                    </thead>
-                    <tbody id="tabelaPacientesMesLaboratorio"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Carrega o ficheiro de JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
