@@ -10,67 +10,47 @@ const UNIDADES_SAUDE = [
     'NOVO ELDORADO', 'SANTA CRUZ', 'JARDIM ELDORADO', 'PEROBAS', 'PARQUE SAO JOAO'
 ];
 
-const LABORATORIOS_COLETA = ['AGUA BRANCA', 'ELDORADO', 'PARQUE SAO JOAO'];
-
 async function loadData( ) {
     try {
         document.getElementById('connectionStatus').className = 'status-indicator status-online';
         document.getElementById('connectionText').textContent = 'Carregando...';
-
         const response = await fetch(SHEET_URL);
         const csvText = await response.text();
+        if (!csvText || csvText.length < 100) throw new Error('Dados CSV vazios ou inválidos');
 
-        if (csvText && csvText.length > 100) {
-            const lines = csvText.split('\n');
-            let headerLineIndex = -1;
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes('UNIDADE DE SAÚDE') && lines[i].includes('DATA')) {
-                    headerLineIndex = i;
-                    break;
+        const lines = csvText.split('\n');
+        let headerLineIndex = lines.findIndex(line => line.includes('UNIDADE DE SAÚDE') && line.includes('DATA'));
+        if (headerLineIndex === -1) throw new Error('Cabeçalhos não encontrados na planilha');
+
+        const headers = parseCSVLine(lines[headerLineIndex]).slice(2);
+        allData = [];
+        for (let i = headerLineIndex + 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+                const values = parseCSVLine(line).slice(2);
+                if (values.length >= headers.length && values.some(val => val.trim() !== '')) {
+                    let row = {};
+                    headers.forEach((header, index) => {
+                        const cleanHeader = header.trim();
+                        const value = values[index] ? values[index].trim() : '';
+                        switch (cleanHeader) {
+                            case 'UNIDADE DE SAÚDE': row.unidadeSaude = value; break;
+                            case 'DATA': row.dataAgendamento = value; break;
+                            case 'HORÁRIO': row.horarioAgendamento = value; break;
+                            case 'NOME DO PACIENTE': row.nomePaciente = value; break;
+                            case 'Nº PRONTUÁRIO VIVVER': row.prontuarioVivver = value; break;
+                            case 'OBSERVAÇÃO/ UNIDADE DE SAÚDE': row.observacaoUnidadeSaude = value; break;
+                            case 'PERFIL DO PACIENTE OU TIPO DO EXAME': row.perfilPacienteExame = value; break;
+                            case 'Laboratório de Coleta:': row.laboratorioColeta = value; break;
+                        }
+                    });
+                    if (row.unidadeSaude || row.dataAgendamento) allData.push(row);
                 }
             }
-
-            if (headerLineIndex === -1) throw new Error('Cabeçalhos não encontrados na planilha');
-
-            const headerLine = lines[headerLineIndex];
-            const rawHeaders = parseCSVLine(headerLine);
-            const headers = rawHeaders.slice(2);
-
-            allData = [];
-            for (let i = headerLineIndex + 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line) {
-                    const rawValues = parseCSVLine(line);
-                    const values = rawValues.slice(2);
-                    if (values.length >= headers.length && values.some(val => val.trim() !== '')) {
-                        let row = {};
-                        headers.forEach((header, index) => {
-                            const cleanHeader = header.trim();
-                            const value = values[index] ? values[index].trim() : '';
-                            switch (cleanHeader) {
-                                case 'UNIDADE DE SAÚDE': row.unidadeSaude = value; break;
-                                case 'DATA': row.dataAgendamento = value; break;
-                                case 'HORÁRIO': row.horarioAgendamento = value; break;
-                                case 'NOME DO PACIENTE': row.nomePaciente = value; break;
-                                case 'TELEFONE': row.telefone = value; break;
-                                case 'Nº PRONTUÁRIO VIVVER': row.prontuarioVivver = value; break;
-                                case 'OBSERVAÇÃO/ UNIDADE DE SAÚDE': row.observacaoUnidadeSaude = value; break;
-                                case 'PERFIL DO PACIENTE OU TIPO DO EXAME': row.perfilPacienteExame = value; break;
-                                case 'Laboratório de Coleta:': row.laboratorioColeta = value; break;
-                            }
-                        });
-                        if (row.unidadeSaude || row.dataAgendamento) allData.push(row);
-                    }
-                }
-            }
-        } else {
-            throw new Error('Dados CSV vazios ou inválidos');
         }
-
         filteredData = [...allData];
         updateFilters();
         updateDashboard();
-
         document.getElementById('connectionStatus').className = 'status-indicator status-online';
         document.getElementById('connectionText').textContent = 'Conectado';
         document.getElementById('lastUpdate').textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
@@ -84,26 +64,20 @@ async function loadData( ) {
 
 function parseCSVLine(line) {
     const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
+    let current = '', inQuotes = false;
+    for (const char of line) {
         if (char === '"') inQuotes = !inQuotes;
         else if (char === ',' && !inQuotes) {
             result.push(current.trim());
             current = '';
-        } else {
-            current += char;
-        }
+        } else current += char;
     }
     result.push(current.trim());
     return result;
 }
 
 function updateFilters() {
-    const unidadeSaudeSet = new Set();
-    const horarioSet = new Set();
-    const laboratorioColetaSet = new Set();
+    const unidadeSaudeSet = new Set(), horarioSet = new Set(), laboratorioColetaSet = new Set();
     allData.forEach(item => {
         if (item.unidadeSaude && item.unidadeSaude !== 'Preencher') unidadeSaudeSet.add(item.unidadeSaude);
         if (item.horarioAgendamento) horarioSet.add(item.horarioAgendamento);
@@ -116,19 +90,11 @@ function updateFilters() {
 
 function updateSelectOptions(selectId, options) {
     const select = document.getElementById(selectId);
-    while (select.options.length > 0) select.remove(0);
+    select.innerHTML = ''; // Limpa opções existentes
     if (!select.multiple) {
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'Todos';
-        select.appendChild(defaultOption);
+        select.add(new Option('Todos', ''));
     }
-    options.forEach(option => {
-        const optionElement = document.createElement('option');
-        optionElement.value = option;
-        optionElement.textContent = option;
-        select.appendChild(optionElement);
-    });
+    options.forEach(option => select.add(new Option(option, option)));
 }
 
 function applyFilters() {
@@ -137,14 +103,12 @@ function applyFilters() {
     const dataFilter = document.getElementById('dataFilter').value;
     const laboratorioColetaFilter = Array.from(document.getElementById('laboratorioColetaFilter').selectedOptions).map(o => o.value);
     filteredData = allData.filter(item => {
-        if (unidadeSaudeFilter.length > 0 && !unidadeSaudeFilter.includes(item.unidadeSaude)) return false;
-        if (horarioFilter.length > 0 && !horarioFilter.includes(item.horarioAgendamento)) return false;
-        if (laboratorioColetaFilter.length > 0 && !laboratorioColetaFilter.includes(item.laboratorioColeta)) return false;
-        if (dataFilter) {
-            const itemDate = parseDate(item.dataAgendamento);
-            const filterDate = new Date(dataFilter);
-            if (itemDate && itemDate.toDateString() !== filterDate.toDateString()) return false;
-        }
+        const itemDate = parseDate(item.dataAgendamento);
+        const filterDate = dataFilter ? new Date(dataFilter) : null;
+        if (unidadeSaudeFilter.length && !unidadeSaudeFilter.includes(item.unidadeSaude)) return false;
+        if (horarioFilter.length && !horarioFilter.includes(item.horarioAgendamento)) return false;
+        if (laboratorioColetaFilter.length && !laboratorioColetaFilter.includes(item.laboratorioColeta)) return false;
+        if (filterDate && (!itemDate || itemDate.toDateString() !== filterDate.toDateString())) return false;
         return true;
     });
     updateDashboard();
@@ -153,8 +117,7 @@ function applyFilters() {
 function parseDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.split('/');
-    if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-    return null;
+    return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : null;
 }
 
 Chart.register(ChartDataLabels);
@@ -164,14 +127,24 @@ function updateDashboard() {
     updateTable();
     updateTablePacientesDiaUnidade();
     updateTablePacientesDiaLaboratorio();
+    // **NOVAS CHAMADAS**
+    updateTableVagasLivresDia();
+    updateTableVagasLivresMes();
 }
 
 function updateCharts() {
     updateChartPacientesMesUnidade();
     updateChartPacientesMesLaboratorio();
-    updateChartVagasLivresDiaUnidade();
-    updateChartVagasLivresMesUnidade();
     updateChartUltimaDataAgendamento();
+}
+
+function createSummaryTable(containerId, data, columns) {
+    const tableBody = document.getElementById(containerId);
+    tableBody.innerHTML = data.map(row => `
+        <tr class="bg-white border-b">
+            ${columns.map(col => `<td class="px-6 py-4 ${col.isNumeric ? 'font-medium text-gray-900' : ''}">${row[col.key]}</td>`).join('')}
+        </tr>
+    `).join('');
 }
 
 function updateTablePacientesDiaUnidade() {
@@ -182,25 +155,13 @@ function updateTablePacientesDiaUnidade() {
             dayUnidadeCount[key] = (dayUnidadeCount[key] || 0) + 1;
         }
     });
-
-    const sortedData = Object.entries(dayUnidadeCount).sort((a, b) => {
-        const dateA = parseDate(a[0].split(' - ')[0]);
-        const dateB = parseDate(b[0].split(' - ')[0]);
-        return dateB - dateA || b[1] - a[1];
-    });
-    
-    const tableBody = document.getElementById('tabelaResumoUnidade');
-    tableBody.innerHTML = sortedData.map(item => {
-        const [key, count] = item;
+    const data = Object.entries(dayUnidadeCount).map(([key, count]) => {
         const [data, unidade] = key.split(' - ');
-        return `
-            <tr class="bg-white border-b">
-                <td class="px-6 py-4">${data}</td>
-                <td class="px-6 py-4">${unidade}</td>
-                <td class="px-6 py-4 font-medium text-gray-900">${count}</td>
-            </tr>
-        `;
-    }).join('');
+        return { data, unidade, count };
+    }).sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.count - a.count);
+    createSummaryTable('tabelaResumoUnidade', data, [
+        { key: 'data' }, { key: 'unidade' }, { key: 'count', isNumeric: true }
+    ]);
 }
 
 function updateTablePacientesDiaLaboratorio() {
@@ -211,37 +172,70 @@ function updateTablePacientesDiaLaboratorio() {
             dayLabCount[key] = (dayLabCount[key] || 0) + 1;
         }
     });
-
-    const sortedData = Object.entries(dayLabCount).sort((a, b) => {
-        const dateA = parseDate(a[0].split(' - ')[0]);
-        const dateB = parseDate(b[0].split(' - ')[0]);
-        return dateB - dateA || b[1] - a[1];
-    });
-
-    const tableBody = document.getElementById('tabelaResumoLaboratorio');
-    tableBody.innerHTML = sortedData.map(item => {
-        const [key, count] = item;
+    const data = Object.entries(dayLabCount).map(([key, count]) => {
         const [data, laboratorio] = key.split(' - ');
-        return `
-            <tr class="bg-white border-b">
-                <td class="px-6 py-4">${data}</td>
-                <td class="px-6 py-4">${laboratorio}</td>
-                <td class="px-6 py-4 font-medium text-gray-900">${count}</td>
-            </tr>
-        `;
-    }).join('');
+        return { data, laboratorio, count };
+    }).sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.count - a.count);
+    createSummaryTable('tabelaResumoLaboratorio', data, [
+        { key: 'data' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }
+    ]);
+}
+
+// **NOVA FUNÇÃO: Tabela de Vagas Livres por Dia**
+function updateTableVagasLivresDia() {
+    const dayUnidadeSlots = {}, dayUnidadeOccupied = {};
+    filteredData.forEach(item => {
+        if (item.dataAgendamento && item.unidadeSaude) {
+            const key = `${item.dataAgendamento} - ${item.unidadeSaude}`;
+            dayUnidadeSlots[key] = (dayUnidadeSlots[key] || 0) + 1;
+            if (item.nomePaciente && item.nomePaciente.trim() !== '') {
+                dayUnidadeOccupied[key] = (dayUnidadeOccupied[key] || 0) + 1;
+            }
+        }
+    });
+    const data = Object.entries(dayUnidadeSlots).map(([key, total]) => {
+        const free = total - (dayUnidadeOccupied[key] || 0);
+        const [data, unidade] = key.split(' - ');
+        return { data, unidade, free };
+    }).filter(item => item.free > 0)
+      .sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.free - a.free);
+    createSummaryTable('tabelaVagasLivresDia', data, [
+        { key: 'data' }, { key: 'unidade' }, { key: 'free', isNumeric: true }
+    ]);
+}
+
+// **NOVA FUNÇÃO: Tabela de Vagas Livres por Mês**
+function updateTableVagasLivresMes() {
+    const monthUnidadeSlots = {}, monthUnidadeOccupied = {};
+    filteredData.forEach(item => {
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.unidadeSaude) {
+            const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            const key = `${monthYear} - ${item.unidadeSaude}`;
+            monthUnidadeSlots[key] = (monthUnidadeSlots[key] || 0) + 1;
+            if (item.nomePaciente && item.nomePaciente.trim() !== '') {
+                monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
+            }
+        }
+    });
+    const data = Object.entries(monthUnidadeSlots).map(([key, total]) => {
+        const free = total - (monthUnidadeOccupied[key] || 0);
+        const [mesAno, unidade] = key.split(' - ');
+        return { mesAno, unidade, free };
+    }).filter(item => item.free > 0)
+      .sort((a, b) => b.free - a.free);
+    createSummaryTable('tabelaVagasLivresMes', data, [
+        { key: 'mesAno' }, { key: 'unidade' }, { key: 'free', isNumeric: true }
+    ]);
 }
 
 function updateChartPacientesMesUnidade() {
     const monthUnidadeCount = {};
     filteredData.forEach(item => {
-        if (item.dataAgendamento && item.unidadeSaude && item.nomePaciente && item.nomePaciente.trim() !== '') {
-            const date = parseDate(item.dataAgendamento);
-            if (date) {
-                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-                const key = `${monthYear} - ${item.unidadeSaude}`;
-                monthUnidadeCount[key] = (monthUnidadeCount[key] || 0) + 1;
-            }
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.unidadeSaude && item.nomePaciente && item.nomePaciente.trim() !== '') {
+            const key = `${date.getMonth() + 1}/${date.getFullYear()} - ${item.unidadeSaude}`;
+            monthUnidadeCount[key] = (monthUnidadeCount[key] || 0) + 1;
         }
     });
     const sortedData = Object.entries(monthUnidadeCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -251,22 +245,19 @@ function updateChartPacientesMesUnidade() {
         type: 'bar',
         data: {
             labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#14532d', borderColor: '#166534', borderWidth: 1 }]
+            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#14532d' }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } }, scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold' } } }, scales: { y: { beginAtZero: true } } }
     });
 }
 
 function updateChartPacientesMesLaboratorio() {
     const monthLabCount = {};
     filteredData.forEach(item => {
-        if (item.dataAgendamento && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
-            const date = parseDate(item.dataAgendamento);
-            if (date) {
-                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-                const key = `${monthYear} - ${item.laboratorioColeta}`;
-                monthLabCount[key] = (monthLabCount[key] || 0) + 1;
-            }
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
+            const key = `${date.getMonth() + 1}/${date.getFullYear()} - ${item.laboratorioColeta}`;
+            monthLabCount[key] = (monthLabCount[key] || 0) + 1;
         }
     });
     const sortedData = Object.entries(monthLabCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -276,100 +267,38 @@ function updateChartPacientesMesLaboratorio() {
         type: 'bar',
         data: {
             labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#7f1d1d', borderColor: '#991b1b', borderWidth: 1 }]
+            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#7f1d1d' }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } }, scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } } }
-    });
-}
-
-function updateChartVagasLivresDiaUnidade() {
-    const dayUnidadeSlots = {}, dayUnidadeOccupied = {};
-    filteredData.forEach(item => {
-        if (item.dataAgendamento && item.unidadeSaude) {
-            const key = `${item.dataAgendamento} - ${item.unidadeSaude}`;
-            dayUnidadeSlots[key] = (dayUnidadeSlots[key] || 0) + 1;
-            if (item.nomePaciente && item.nomePaciente.trim() !== '') dayUnidadeOccupied[key] = (dayUnidadeOccupied[key] || 0) + 1;
-        }
-    });
-    const freeSlots = {};
-    Object.keys(dayUnidadeSlots).forEach(key => { freeSlots[key] = dayUnidadeSlots[key] - (dayUnidadeOccupied[key] || 0); });
-    const sortedData = Object.entries(freeSlots).filter(item => item[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const ctx = document.getElementById('chartVagasLivresDiaUnidade').getContext('2d');
-    if (charts.vagasLivresDiaUnidade) charts.vagasLivresDiaUnidade.destroy();
-    charts.vagasLivresDiaUnidade = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Vagas Livres', data: sortedData.map(item => item[1]), backgroundColor: '#be185d', borderColor: '#db2777', borderWidth: 1 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } }, scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } } }
-    });
-}
-
-function updateChartVagasLivresMesUnidade() {
-    const monthUnidadeSlots = {}, monthUnidadeOccupied = {};
-    const date = new Date(), currentMonthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-    UNIDADES_SAUDE.forEach(unidade => {
-        const key = `${currentMonthYear} - ${unidade}`;
-        monthUnidadeSlots[key] = 0;
-        monthUnidadeOccupied[key] = 0;
-    });
-    filteredData.forEach(item => {
-        if (item.dataAgendamento && item.unidadeSaude) {
-            const itemDate = parseDate(item.dataAgendamento);
-            if (itemDate) {
-                const monthYear = `${itemDate.getMonth() + 1}/${itemDate.getFullYear()}`;
-                const key = `${monthYear} - ${item.unidadeSaude}`;
-                if (monthUnidadeSlots[key] === undefined) {
-                    monthUnidadeSlots[key] = 0;
-                    monthUnidadeOccupied[key] = 0;
-                }
-                monthUnidadeSlots[key]++;
-                if (item.nomePaciente && item.nomePaciente.trim() !== '') monthUnidadeOccupied[key]++;
-            }
-        }
-    });
-    const freeSlots = {};
-    Object.keys(monthUnidadeSlots).forEach(key => { freeSlots[key] = monthUnidadeSlots[key] - (monthUnidadeOccupied[key] || 0); });
-    const chartData = Object.entries(freeSlots).sort((a, b) => a[0].localeCompare(b[0]));
-    const ctx = document.getElementById('chartVagasLivresMesUnidade').getContext('2d');
-    if (charts.vagasLivresMesUnidade) charts.vagasLivresMesUnidade.destroy();
-    charts.vagasLivresMesUnidade = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartData.map(item => item[0]),
-            datasets: [{ label: 'Vagas Livres', data: chartData.map(item => item[1]), backgroundColor: '#374151', borderColor: '#4b5563', borderWidth: 1 }]
-        },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 15 }, anchor: 'center', align: 'center' } }, scales: { x: { beginAtZero: true }, y: { ticks: { autoSkip: false } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold' } } }, scales: { y: { beginAtZero: true } } }
     });
 }
 
 function updateChartUltimaDataAgendamento() {
     const lastDateByLab = {};
     filteredData.forEach(item => {
-        if (item.dataAgendamento && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
-            const date = parseDate(item.dataAgendamento);
-            if (date) {
-                if (!lastDateByLab[item.laboratorioColeta] || date > lastDateByLab[item.laboratorioColeta]) lastDateByLab[item.laboratorioColeta] = date;
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
+            if (!lastDateByLab[item.laboratorioColeta] || date > lastDateByLab[item.laboratorioColeta]) {
+                lastDateByLab[item.laboratorioColeta] = date;
             }
         }
     });
-    const sortedData = Object.entries(lastDateByLab).map(([lab, date]) => [lab, date.toLocaleDateString('pt-BR')]).sort((a, b) => new Date(b[1].split('/').reverse().join('-')) - new Date(a[1].split('/').reverse().join('-')));
+    const sortedData = Object.entries(lastDateByLab).map(([lab, date]) => [lab, date.toLocaleDateString('pt-BR')]).sort((a, b) => parseDate(b[1]) - parseDate(a[1]));
     const ctx = document.getElementById('chartUltimaDataAgendamento').getContext('2d');
     if (charts.ultimaDataAgendamento) charts.ultimaDataAgendamento.destroy();
     charts.ultimaDataAgendamento = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Última Data de Agendamento', data: sortedData.map((item, index) => index + 1), backgroundColor: '#ea580c', borderColor: '#f97316', borderWidth: 1 }]
+            datasets: [{ label: 'Última Data', data: sortedData.map((_, i) => sortedData.length - i), backgroundColor: '#ea580c' }]
         },
         options: {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, anchor: 'center', align: 'center', formatter: (value, context) => sortedData[context.dataIndex][1] }
+                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex][1] }
             },
-            scales: { x: { display: false }, y: { beginAtZero: true } }
+            scales: { x: { display: false } }
         }
     });
 }
@@ -399,8 +328,7 @@ function updateTable() {
 function clearFilters() {
     document.getElementById('dataFilter').value = '';
     ['unidadeSaudeFilter', 'horarioFilter', 'laboratorioColetaFilter'].forEach(id => {
-        const select = document.getElementById(id);
-        Array.from(select.options).forEach(option => option.selected = false);
+        Array.from(document.getElementById(id).options).forEach(option => option.selected = false);
     });
     applyFilters();
 }
@@ -420,7 +348,7 @@ function exportToExcel() {
     XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    setInterval(loadData, 300000);
+    setInterval(loadData, 300000); // Auto-atualiza a cada 5 minutos
 });
