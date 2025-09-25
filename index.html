@@ -5,62 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distrito Sanitário Eldorado - Consolidado de Vagas</title>
     
-    <!-- Bibliotecas de Estilo Externas -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    
-    <!-- *** CORREÇÃO CRÍTICA: Adiciona o CSS para os filtros modernos *** -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
-    
-    <!-- Ficheiro de Estilo Local -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100">
-    <!-- Cabeçalho Principal -->
-    <header class="main-header p-6 shadow-lg">
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="card mx-4 my-4 p-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div class="text-white">
-                <h1 class="text-3xl font-bold">Distrito Sanitário Eldorado</h1>
-                <h2 class="text-xl font-semibold opacity-90">Consolidado de Vagas/ Planilha de Exames Laboratoriais.</h2>
-                <h3 class="text-lg font-medium opacity-80">Diretora: Wandha Karine dos Santos</h3>
-                <p class="text-sm opacity-70 mt-1">Painel Criado por Ana P. A. Silva Matr. 201704/ Ref. Vivver / Distrito Sanitário Eldorado</p>
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="bg-blue-500 p-3 rounded-lg mr-4"><i class="fas fa-table text-white text-2xl"></i></div>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Distrito Sanitário Eldorado</h1>
+                    <h2 class="text-xl font-semibold text-gray-700">Consolidado de Vagas/ Planilha de Exames Laboratoriais.</h2>
+                    <h3 class="text-lg font-medium text-gray-600">Diretora: Wandha Karine dos Santos</h3>
+                    <p class="text-gray-500 mt-1">Painel Criado por Ana P. A. Silva Matr. 201704/ Ref. Vivver / Distrito Sanitário Eldorado</p>
+                    <p class="text-gray-600 mt-1" id="lastUpdate">Última atualização: Carregando...</p>
+                </div>
             </div>
-            <div class="flex flex-col items-start md:items-end mt-4 md:mt-0">
-                <div class="flex items-center text-sm text-white mb-3">
-                    <span id="connectionStatus" class="status-indicator status-online"></span>
+            <div class="flex items-center space-x-4 no-print">
+                <div class="flex items-center text-sm text-gray-600">
+                    <span class="status-indicator status-online" id="connectionStatus"></span>
                     <span id="connectionText">Conectado</span>
                 </div>
-                <div class="flex items-center space-x-3 no-print">
-                    <button onclick="loadData( )" class="btn-header"><i class="fas fa-sync-alt mr-2"></i>Atualizar</button>
-                    <!-- *** CORREÇÃO: A função do botão de limpar foi alterada *** -->
-                    <button onclick="clearAllFilters()" class="btn-header"><i class="fas fa-filter-slash mr-2"></i>Limpar Filtros</button>
-                    <button onclick="exportToExcel()" class="btn-header-excel"><i class="fas fa-file-excel mr-2"></i>Excel</button>
-                </div>
+                <button onclick="loadData( )" class="btn-primary"><i class="fas fa-sync-alt mr-2"></i>Atualizar</button>
+                <button onclick="clearFilters()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-filter-slash mr-2"></i>Limpar Filtros</button>
+                <button onclick="exportToExcel()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-file-excel mr-2"></i>Excel</button>
             </div>
         </div>
-    </header>
+    </div>
 
     <!-- Filtros -->
-    <div class="mx-4 my-6">
-        <div class="bg-white p-4 rounded-lg shadow-md">
-            <h3 class="text-lg font-semibold mb-3 text-gray-800"><i class="fas fa-filter mr-2"></i>Filtros de Dados</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="mx-4 mb-4">
+        <div class="filter-section no-print">
+            <h3 class="text-lg font-semibold mb-3 text-gray-800"><i class="fas fa-filter mr-2"></i>Filtros</h3>
+            <div class="filter-group">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Unidade de Saúde:</label>
-                    <select id="unidadeSaudeFilter" multiple></select>
+                    <select id="unidadeSaudeFilter" onchange="applyFilters()" multiple></select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Horário:</label>
-                    <select id="horarioFilter" multiple></select>
+                    <select id="horarioFilter" onchange="applyFilters()" multiple></select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Data:</label>
-                    <input type="date" id="dataFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <input type="date" id="dataFilter" onchange="applyFilters()">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Laboratório de Coleta:</label>
-                    <select id="laboratorioColetaFilter" multiple></select>
+                    <select id="laboratorioColetaFilter" onchange="applyFilters()" multiple></select>
                 </div>
             </div>
         </div>
@@ -69,76 +64,90 @@
     <!-- Gráficos de Última Atualização -->
     <div class="mx-4 mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Última Data de Agendamento por Unidade</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Última Data de Agendamento por Unidade</h3></div>
             <div class="chart-container"><canvas id="chartUltimaDataUnidade"></canvas></div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Última Data de Agendamento por Laboratório</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Última Data de Agendamento por Laboratório</h3></div>
             <div class="chart-container"><canvas id="chartUltimaDataLaboratorio"></canvas></div>
         </div>
     </div>
 
     <!-- Tabelas de Resumo -->
-    <div class="mx-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="mx-4 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-hospital-user mr-2"></i>Vagas Utilizadas por Dia / Unidade</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-hospital-user mr-2"></i>Vagas Utilizadas por Dia/Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaResumoUnidade"></tbody>
                 </table>
             </div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-vial mr-2"></i>Vagas Utilizadas por Dia / Laboratório</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-vial mr-2"></i>Vagas Utilizadas por Dia/Laboratório</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaResumoLaboratorio"></tbody>
                 </table>
             </div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-bed mr-2"></i>Vagas Livres por Dia / Unidade</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-bed mr-2"></i>Vagas Livres por Dia/Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaVagasLivresDia"></tbody>
                 </table>
             </div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-check mr-2"></i>Vagas Livres por Mês / Unidade</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-check mr-2"></i>Vagas Livres por Mês/Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaVagasLivresMes"></tbody>
                 </table>
             </div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Vagas Utilizadas por Mês / Unidade</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Vagas Utilizadas por Mês/Unidade</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Unidade</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaPacientesMesUnidade"></tbody>
                 </table>
             </div>
         </div>
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-day mr-2"></i>Vagas Utilizadas por Mês / Laboratório</h3></div>
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-calendar-day mr-2"></i>Vagas Utilizadas por Mês/Laboratório</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaPacientesMesLaboratorio"></tbody>
                 </table>
             </div>
         </div>
-         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-prescription-bottle-alt mr-2"></i>Vagas Livres por Mês / Laboratório</h3></div>
+        <div class="card">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-flask mr-2"></i>Vagas Livres por Mês/Laboratório</h3></div>
             <div class="overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr></thead>
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                        <tr><th class="px-6 py-3">Mês/Ano</th><th class="px-6 py-3">Laboratório</th><th class="px-6 py-3">Vagas</th></tr>
+                    </thead>
                     <tbody id="tabelaVagasLivresMesLaboratorio"></tbody>
                 </table>
             </div>
@@ -148,8 +157,8 @@
     <!-- Tabela Principal -->
     <div class="mx-4 mb-6">
         <div class="card">
-            <div class="panel-header"><h3 class="text-lg font-semibold"><i class="fas fa-table mr-2"></i>Todos os Agendamentos</h3></div>
-            <div class="overflow-x-auto p-4">
+            <div class="p-4 border-b"><h3 class="text-lg font-semibold"><i class="fas fa-table mr-2"></i>Todos os Agendamentos</h3></div>
+            <div class="overflow-x-auto">
                 <table id="agendamentosTable" class="display" style="width:100%">
                     <thead>
                         <tr>
@@ -168,15 +177,11 @@
         </div>
     </div>
 
-    <!-- Bibliotecas de Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-    
-    <!-- Ficheiro de Script Local -->
     <script src="script.js"></script>
 </body>
 </html>
