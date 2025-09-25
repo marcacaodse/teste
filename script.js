@@ -123,18 +123,32 @@ function updateDashboard() {
     updateTableVagasLivresMes();
     updateTablePacientesMesUnidade();
     updateTablePacientesMesLaboratorio();
+    updateTableVagasLivresMesLaboratorio();
 }
 
-function createSummaryTable(containerId, data, columns) {
+function createSummaryTableWithTotal(containerId, data, columns, totalColumnKey) {
     const tableBody = document.getElementById(containerId);
-    tableBody.innerHTML = data.map(row => `
-        <tr class="bg-white border-b">
-            ${columns.map(col => `<td class="px-6 py-4 ${col.isNumeric ? 'font-medium text-gray-900' : ''}">${row[col.key]}</td>`).join('')}
+    let total = 0;
+    
+    const rowsHtml = data.map(row => {
+        total += row[totalColumnKey];
+        return `
+            <tr class="bg-white border-b">
+                ${columns.map(col => `<td class="px-6 py-4 ${col.isNumeric ? 'font-medium text-gray-900' : ''}">${row[col.key]}</td>`).join('')}
+            </tr>
+        `;
+    }).join('');
+
+    const totalRowHtml = `
+        <tr class="bg-gray-100 border-t-2 border-gray-300">
+            <td class="px-6 py-4 font-bold text-gray-800" colspan="${columns.length - 1}">Total</td>
+            <td class="px-6 py-4 font-bold text-gray-900">${total}</td>
         </tr>
-    `).join('');
+    `;
+
+    tableBody.innerHTML = rowsHtml + totalRowHtml;
 }
 
-// --- ALTERAÇÕES AQUI ---
 function updateChartUltimaDataUnidade() {
     const lastDateByUnidade = {};
     filteredData.forEach(item => {
@@ -165,30 +179,13 @@ function updateChartUltimaDataUnidade() {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { 
-                        weight: 'bold',
-                        size: 16 // Tamanho da fonte dentro da barra
-                    }, 
-                    formatter: (_, context) => sortedData[context.dataIndex].date 
-                }
+                datalabels: { color: '#fff', font: { weight: 'bold', size: 16 }, formatter: (_, context) => sortedData[context.dataIndex].date }
             },
-            scales: { 
-                x: { display: false },
-                y: {
-                    ticks: {
-                        font: {
-                            weight: 'bold' // Legenda do eixo Y em negrito
-                        }
-                    }
-                }
-            }
+            scales: { x: { display: false }, y: { ticks: { font: { weight: 'bold' } } } }
         }
     });
 }
 
-// --- E AQUI ---
 function updateChartUltimaDataLaboratorio() {
     const lastDateByLab = {};
     filteredData.forEach(item => {
@@ -219,30 +216,13 @@ function updateChartUltimaDataLaboratorio() {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                datalabels: {
-                    color: '#fff',
-                    font: { 
-                        weight: 'bold',
-                        size: 16 // Tamanho da fonte dentro da barra
-                    }, 
-                    formatter: (_, context) => sortedData[context.dataIndex].date 
-                }
+                datalabels: { color: '#fff', font: { weight: 'bold', size: 16 }, formatter: (_, context) => sortedData[context.dataIndex].date }
             },
-            scales: { 
-                x: { display: false },
-                y: {
-                    ticks: {
-                        font: {
-                            weight: 'bold' // Legenda do eixo Y em negrito
-                        }
-                    }
-                }
-            }
+            scales: { x: { display: false }, y: { ticks: { font: { weight: 'bold' } } } }
         }
     });
 }
 
-// O resto do código permanece igual...
 function updateTablePacientesDiaUnidade() {
     const dayUnidadeCount = {};
     filteredData.forEach(item => {
@@ -255,9 +235,7 @@ function updateTablePacientesDiaUnidade() {
         const [data, unidade] = key.split(' - ');
         return { data, unidade, count };
     }).sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.count - a.count);
-    createSummaryTable('tabelaResumoUnidade', data, [
-        { key: 'data' }, { key: 'unidade' }, { key: 'count', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaResumoUnidade', data, [{ key: 'data' }, { key: 'unidade' }, { key: 'count', isNumeric: true }], 'count');
 }
 
 function updateTablePacientesDiaLaboratorio() {
@@ -272,9 +250,7 @@ function updateTablePacientesDiaLaboratorio() {
         const [data, laboratorio] = key.split(' - ');
         return { data, laboratorio, count };
     }).sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.count - a.count);
-    createSummaryTable('tabelaResumoLaboratorio', data, [
-        { key: 'data' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaResumoLaboratorio', data, [{ key: 'data' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }], 'count');
 }
 
 function updateTableVagasLivresDia() {
@@ -292,9 +268,7 @@ function updateTableVagasLivresDia() {
         return { data, unidade, free };
     }).filter(item => item.free > 0)
       .sort((a, b) => (parseDate(b.data) - parseDate(a.data)) || b.free - a.free);
-    createSummaryTable('tabelaVagasLivresDia', data, [
-        { key: 'data' }, { key: 'unidade' }, { key: 'free', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaVagasLivresDia', data, [{ key: 'data' }, { key: 'unidade' }, { key: 'free', isNumeric: true }], 'free');
 }
 
 function updateTableVagasLivresMes() {
@@ -314,9 +288,7 @@ function updateTableVagasLivresMes() {
         return { mesAno, unidade, free };
     }).filter(item => item.free > 0)
       .sort((a, b) => b.free - a.free);
-    createSummaryTable('tabelaVagasLivresMes', data, [
-        { key: 'mesAno' }, { key: 'unidade' }, { key: 'free', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaVagasLivresMes', data, [{ key: 'mesAno' }, { key: 'unidade' }, { key: 'free', isNumeric: true }], 'free');
 }
 
 function updateTablePacientesMesUnidade() {
@@ -332,9 +304,7 @@ function updateTablePacientesMesUnidade() {
         const [mesAno, unidade] = key.split(' - ');
         return { mesAno, unidade, count };
     }).sort((a, b) => b.count - a.count);
-    createSummaryTable('tabelaPacientesMesUnidade', data, [
-        { key: 'mesAno' }, { key: 'unidade' }, { key: 'count', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaPacientesMesUnidade', data, [{ key: 'mesAno' }, { key: 'unidade' }, { key: 'count', isNumeric: true }], 'count');
 }
 
 function updateTablePacientesMesLaboratorio() {
@@ -350,9 +320,30 @@ function updateTablePacientesMesLaboratorio() {
         const [mesAno, laboratorio] = key.split(' - ');
         return { mesAno, laboratorio, count };
     }).sort((a, b) => b.count - a.count);
-    createSummaryTable('tabelaPacientesMesLaboratorio', data, [
-        { key: 'mesAno' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }
-    ]);
+    createSummaryTableWithTotal('tabelaPacientesMesLaboratorio', data, [{ key: 'mesAno' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }], 'count');
+}
+
+// --- NOVA FUNÇÃO ---
+function updateTableVagasLivresMesLaboratorio() {
+    const monthLabSlots = {}, monthLabOccupied = {};
+    filteredData.forEach(item => {
+        const date = parseDate(item.dataAgendamento);
+        if (date && item.laboratorioColeta) {
+            const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            const key = `${monthYear} - ${item.laboratorioColeta}`;
+            monthLabSlots[key] = (monthLabSlots[key] || 0) + 1;
+            if (item.nomePaciente && item.nomePaciente.trim() !== '') {
+                monthLabOccupied[key] = (monthLabOccupied[key] || 0) + 1;
+            }
+        }
+    });
+    const data = Object.entries(monthLabSlots).map(([key, total]) => {
+        const free = total - (monthLabOccupied[key] || 0);
+        const [mesAno, laboratorio] = key.split(' - ');
+        return { mesAno, laboratorio, free };
+    }).filter(item => item.free > 0)
+      .sort((a, b) => b.free - a.free);
+    createSummaryTableWithTotal('tabelaVagasLivresMesLaboratorio', data, [{ key: 'mesAno' }, { key: 'laboratorio' }, { key: 'free', isNumeric: true }], 'free');
 }
 
 function updateTable() {
