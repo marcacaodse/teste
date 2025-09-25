@@ -1,6 +1,6 @@
 let allData = [];
 let filteredData = [];
-let charts = {}; // Objeto para guardar as instâncias dos gráficos
+let charts = {};
 let dataTable;
 
 async function loadData() {
@@ -351,23 +351,23 @@ function clearFilters() {
 }
 
 function exportToExcel() {
-    const sheets = {
-        'Todos_Agendamentos': filteredData.map(item => ({
-            'UNIDADE DE SAÚDE': item.unidadeSaude || '',
-            'DATA': item.dataAgendamento || '',
-            'HORÁRIO': item.horarioAgendamento || '',
-            'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
-            'OBSERVAÇÃO/ UNIDADE DE SAÚDE': item.observacaoUnidadeSaude || '',
-            'PERFIL DO PACIENTE OU TIPO DO EXAME': item.perfilPacienteExame || '',
-            'Laboratório de Coleta': item.laboratorioColeta || ''
-        }))
-    };
-
     const wb = XLSX.utils.book_new();
-    for (const sheetName in sheets) {
-        const ws = XLSX.utils.json_to_sheet(sheets[sheetName]);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    }
+    
+    // Dados da tabela principal
+    const mainData = filteredData.map(item => ({
+        'UNIDADE DE SAÚDE': item.unidadeSaude || '',
+        'DATA': item.dataAgendamento || '',
+        'HORÁRIO': item.horarioAgendamento || '',
+        'Nº PRONTUÁRIO VIVVER': item.prontuarioVivver || '',
+        'OBSERVAÇÃO': item.observacaoUnidadeSaude || '',
+        'PERFIL/EXAME': item.perfilPacienteExame || '',
+        'Laboratório': item.laboratorioColeta || ''
+    }));
+    const wsMain = XLSX.utils.json_to_sheet(mainData);
+    XLSX.utils.book_append_sheet(wb, wsMain, 'Todos Agendamentos');
+
+    // Adicionar outras tabelas se desejar...
+    
     XLSX.writeFile(wb, `agendamentos_eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
