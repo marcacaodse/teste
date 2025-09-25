@@ -1,20 +1,12 @@
 let allData = [];
 let filteredData = [];
-let charts = {};
 let dataTable;
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Gtan6GhpDO5ViVuNMiT0AGm3F5I5iZSIYhWHVJ3ga6E/export?format=csv&gid=64540129';
-
-const UNIDADES_SAUDE = [
-    'AGUA BRANCA', 'JARDIM BANDEIRANTES', 'CSU ELDORADO', 'UNIDADE XV', 
-    'NOVO ELDORADO', 'SANTA CRUZ', 'JARDIM ELDORADO', 'PEROBAS', 'PARQUE SAO JOAO'
-];
-
-async function loadData( ) {
+async function loadData() {
     try {
         document.getElementById('connectionStatus').className = 'status-indicator status-online';
         document.getElementById('connectionText').textContent = 'Carregando...';
-        const response = await fetch(SHEET_URL);
+        const response = await fetch('https://docs.google.com/spreadsheets/d/1Gtan6GhpDO5ViVuNMiT0AGm3F5I5iZSIYhWHVJ3ga6E/export?format=csv&gid=64540129' );
         const csvText = await response.text();
         if (!csvText || csvText.length < 100) throw new Error('Dados CSV vazios ou inválidos');
 
@@ -90,10 +82,8 @@ function updateFilters() {
 
 function updateSelectOptions(selectId, options) {
     const select = document.getElementById(selectId);
-    select.innerHTML = ''; // Limpa opções existentes
-    if (!select.multiple) {
-        select.add(new Option('Todos', ''));
-    }
+    select.innerHTML = '';
+    if (!select.multiple) select.add(new Option('Todos', ''));
     options.forEach(option => select.add(new Option(option, option)));
 }
 
@@ -120,22 +110,14 @@ function parseDate(dateStr) {
     return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : null;
 }
 
-Chart.register(ChartDataLabels);
-
 function updateDashboard() {
-    updateCharts();
     updateTable();
     updateTablePacientesDiaUnidade();
     updateTablePacientesDiaLaboratorio();
-    // **NOVAS CHAMADAS**
     updateTableVagasLivresDia();
     updateTableVagasLivresMes();
-}
-
-function updateCharts() {
-    updateChartPacientesMesUnidade();
-    updateChartPacientesMesLaboratorio();
-    updateChartUltimaDataAgendamento();
+    updateTablePacientesMesUnidade();
+    updateTablePacientesMesLaboratorio();
 }
 
 function createSummaryTable(containerId, data, columns) {
@@ -181,16 +163,13 @@ function updateTablePacientesDiaLaboratorio() {
     ]);
 }
 
-// **NOVA FUNÇÃO: Tabela de Vagas Livres por Dia**
 function updateTableVagasLivresDia() {
     const dayUnidadeSlots = {}, dayUnidadeOccupied = {};
     filteredData.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude) {
             const key = `${item.dataAgendamento} - ${item.unidadeSaude}`;
             dayUnidadeSlots[key] = (dayUnidadeSlots[key] || 0) + 1;
-            if (item.nomePaciente && item.nomePaciente.trim() !== '') {
-                dayUnidadeOccupied[key] = (dayUnidadeOccupied[key] || 0) + 1;
-            }
+            if (item.nomePaciente && item.nomePaciente.trim() !== '') dayUnidadeOccupied[key] = (dayUnidadeOccupied[key] || 0) + 1;
         }
     });
     const data = Object.entries(dayUnidadeSlots).map(([key, total]) => {
@@ -204,7 +183,6 @@ function updateTableVagasLivresDia() {
     ]);
 }
 
-// **NOVA FUNÇÃO: Tabela de Vagas Livres por Mês**
 function updateTableVagasLivresMes() {
     const monthUnidadeSlots = {}, monthUnidadeOccupied = {};
     filteredData.forEach(item => {
@@ -213,9 +191,7 @@ function updateTableVagasLivresMes() {
             const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
             const key = `${monthYear} - ${item.unidadeSaude}`;
             monthUnidadeSlots[key] = (monthUnidadeSlots[key] || 0) + 1;
-            if (item.nomePaciente && item.nomePaciente.trim() !== '') {
-                monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
-            }
+            if (item.nomePaciente && item.nomePaciente.trim() !== '') monthUnidadeOccupied[key] = (monthUnidadeOccupied[key] || 0) + 1;
         }
     });
     const data = Object.entries(monthUnidadeSlots).map(([key, total]) => {
@@ -229,7 +205,7 @@ function updateTableVagasLivresMes() {
     ]);
 }
 
-function updateChartPacientesMesUnidade() {
+function updateTablePacientesMesUnidade() {
     const monthUnidadeCount = {};
     filteredData.forEach(item => {
         const date = parseDate(item.dataAgendamento);
@@ -238,20 +214,16 @@ function updateChartPacientesMesUnidade() {
             monthUnidadeCount[key] = (monthUnidadeCount[key] || 0) + 1;
         }
     });
-    const sortedData = Object.entries(monthUnidadeCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const ctx = document.getElementById('chartPacientesMesUnidade').getContext('2d');
-    if (charts.pacientesMesUnidade) charts.pacientesMesUnidade.destroy();
-    charts.pacientesMesUnidade = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#14532d' }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold' } } }, scales: { y: { beginAtZero: true } } }
-    });
+    const data = Object.entries(monthUnidadeCount).map(([key, count]) => {
+        const [mesAno, unidade] = key.split(' - ');
+        return { mesAno, unidade, count };
+    }).sort((a, b) => b.count - a.count);
+    createSummaryTable('tabelaPacientesMesUnidade', data, [
+        { key: 'mesAno' }, { key: 'unidade' }, { key: 'count', isNumeric: true }
+    ]);
 }
 
-function updateChartPacientesMesLaboratorio() {
+function updateTablePacientesMesLaboratorio() {
     const monthLabCount = {};
     filteredData.forEach(item => {
         const date = parseDate(item.dataAgendamento);
@@ -260,47 +232,13 @@ function updateChartPacientesMesLaboratorio() {
             monthLabCount[key] = (monthLabCount[key] || 0) + 1;
         }
     });
-    const sortedData = Object.entries(monthLabCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const ctx = document.getElementById('chartPacientesMesLaboratorio').getContext('2d');
-    if (charts.pacientesMesLaboratorio) charts.pacientesMesLaboratorio.destroy();
-    charts.pacientesMesLaboratorio = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Pacientes Agendados', data: sortedData.map(item => item[1]), backgroundColor: '#7f1d1d' }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold' } } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-function updateChartUltimaDataAgendamento() {
-    const lastDateByLab = {};
-    filteredData.forEach(item => {
-        const date = parseDate(item.dataAgendamento);
-        if (date && item.laboratorioColeta && item.nomePaciente && item.nomePaciente.trim() !== '') {
-            if (!lastDateByLab[item.laboratorioColeta] || date > lastDateByLab[item.laboratorioColeta]) {
-                lastDateByLab[item.laboratorioColeta] = date;
-            }
-        }
-    });
-    const sortedData = Object.entries(lastDateByLab).map(([lab, date]) => [lab, date.toLocaleDateString('pt-BR')]).sort((a, b) => parseDate(b[1]) - parseDate(a[1]));
-    const ctx = document.getElementById('chartUltimaDataAgendamento').getContext('2d');
-    if (charts.ultimaDataAgendamento) charts.ultimaDataAgendamento.destroy();
-    charts.ultimaDataAgendamento = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedData.map(item => item[0]),
-            datasets: [{ label: 'Última Data', data: sortedData.map((_, i) => sortedData.length - i), backgroundColor: '#ea580c' }]
-        },
-        options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (_, context) => sortedData[context.dataIndex][1] }
-            },
-            scales: { x: { display: false } }
-        }
-    });
+    const data = Object.entries(monthLabCount).map(([key, count]) => {
+        const [mesAno, laboratorio] = key.split(' - ');
+        return { mesAno, laboratorio, count };
+    }).sort((a, b) => b.count - a.count);
+    createSummaryTable('tabelaPacientesMesLaboratorio', data, [
+        { key: 'mesAno' }, { key: 'laboratorio' }, { key: 'count', isNumeric: true }
+    ]);
 }
 
 function updateTable() {
@@ -350,5 +288,5 @@ function exportToExcel() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    setInterval(loadData, 300000); // Auto-atualiza a cada 5 minutos
+    setInterval(loadData, 300000);
 });
