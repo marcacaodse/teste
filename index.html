@@ -14,23 +14,24 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-100">
-    <!-- Cabeçalho -->
+    <!-- Cabeçalho com o novo estilo -->
     <header class="main-header">
         <div class="header-content">
-            <h1 class="text-4xl font-bold">Distrito Sanitário Eldorado</h1>
-            <h2 class="text-xl mt-2">Consolidado de Vagas / Planilha de Exames Laboratoriais</h2>
-            <p class="mt-4">Diretora: Wandha Karine dos Santos</p>
-            <p class="text-sm mt-1">Painel Criado por Ana P. A. Silva Matr. 201704 / Ref. Vivver</p>
-            <p id="lastUpdate" class="text-sm mt-2">Última atualização: Carregando...</p>
+            <h1 class="text-4xl font-bold text-white">Distrito Sanitário Eldorado</h1>
+            <h2 class="text-xl mt-2 text-gray-200">Consolidado de Vagas / Planilha de Exames Laboratoriais</h2>
+            <p class="mt-4 text-gray-300 font-semibold">Diretora: Wandha Karine dos Santos</p>
+            <p class="text-sm mt-1 text-gray-300">Painel Criado por Ana P. A. Silva Matr. 201704 / Ref. Vivver</p>
         </div>
+        <!-- Elemento para a forma diagonal -->
         <div class="header-shape"></div>
     </header>
 
     <main class="p-4 md:p-6">
         <!-- Filtros e Ações -->
-        <div class="card mb-6">
-            <div class="p-4 border-b">
-                <h3 class="text-lg font-semibold text-gray-700"><i class="fas fa-filter mr-2"></i>Filtros e Ações</h3>
+        <div class="card mb-6 -mt-16 z-10 relative">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-700"><i class="fas fa-filter mr-2"></i>Filtros de Dados</h3>
+                <p id="lastUpdate" class="text-sm text-gray-500">Última atualização: Carregando...</p>
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
