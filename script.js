@@ -2,43 +2,35 @@
 // CONFIGURAÇÃO E VARIÁVEIS GLOBAIS
 // =================================================================================
 
-// URL da planilha publicada na web em formato CSV.
-// Esta URL é construída a partir do ID da sua planilha e do GID da aba.
 const SHEET_ID = '1Gtan6GhpDO5ViVuNMiT0AGm3F5I5iZSIYhWHVJ3ga6E';
 const SHEET_GID = '64540129';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
 
-let allData = []; // Armazena todos os dados brutos da planilha
-let filteredData = []; // Armazena os dados após a aplicação dos filtros
-let dataTable; // Objeto da tabela (DataTables )
-let charts = {}; // Objeto para armazenar as instâncias dos gráficos
+let allData = [];
+let filteredData = [];
+let dataTable;
+let charts = {};
 
 // =================================================================================
 // FUNÇÃO PRINCIPAL DE CARREGAMENTO DE DADOS
 // =================================================================================
 
-async function loadData() {
+async function loadData( ) {
     updateConnectionStatus('loading', 'A carregar dados...');
     try {
         const response = await fetch(SHEET_URL);
-        if (!response.ok) {
-            throw new Error(`Erro de rede: ${response.statusText}`);
-        }
-        const csvText = await response.text();
+        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
         
-        // Processa o texto CSV para um formato de objeto JSON
+        const csvText = await response.text();
         allData = parseCSV(csvText);
         
         if (allData.length === 0) {
             throw new Error("Nenhum dado encontrado na planilha. Verifique o formato.");
         }
 
-        // Após carregar, aplica os filtros (inicialmente vazios) e atualiza o painel
+        populateFilterOptions();
         applyFilters();
         
-        // Popula os menus de filtro pela primeira vez
-        populateFilterOptions();
-
         updateConnectionStatus('online', 'Dados carregados com sucesso!');
         document.getElementById('lastUpdate').textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
 
@@ -52,40 +44,36 @@ async function loadData() {
 // FUNÇÕES DE PROCESSAMENTO E FILTRAGEM
 // =================================================================================
 
-/**
- * Converte o texto CSV bruto num array de objetos.
- * @param {string} text - O conteúdo do ficheiro CSV.
- * @returns {Array<Object>} - Um array de objetos, onde cada objeto representa uma linha.
- */
 function parseCSV(text) {
     const lines = text.trim().split('\n');
-    // Encontra a linha do cabeçalho de forma dinâmica
-    const headerIndex = lines.findIndex(line => line.includes('UNIDADE DE SAÚDE'));
+    const headerIndex = lines.findIndex(line => line.toUpperCase().includes('UNIDADE DE SAUDE'));
     if (headerIndex === -1) return [];
 
-    const headers = lines[headerIndex].split(',').map(h => h.trim());
+    const headers = lines[headerIndex].split(',').map(h => h.trim().toUpperCase());
     const data = [];
 
-    // Mapeia os nomes das colunas para os nomes das propriedades do objeto
+    // Mapeamento corrigido e completo das colunas
     const columnMapping = {
-        'UNIDADE DE SAÚDE': 'unidadeSaude',
+        'UNIDADE DE SAUDE': 'unidadeSaude',
         'DATA': 'data',
-        'HORÁRIO': 'horario',
+        'HORARIO': 'horario',
         'NOME DO PACIENTE': 'nomePaciente',
+        'TELEFONE': 'telefone',
         'Nº PRONTUÁRIO VIVVER': 'prontuario',
         'OBSERVAÇÃO/ UNIDADE DE SAÚDE': 'observacao',
         'PERFIL DO PACIENTE OU TIPO DO EXAME': 'perfilExame',
-        'Laboratório de Coleta': 'laboratorioColeta'
+        'LABORATÓRIO DE COLETA': 'laboratorioColeta' // CORREÇÃO APLICADA AQUI
     };
+    
+    const mappedHeaders = headers.map(h => columnMapping[h]);
 
     for (let i = headerIndex + 1; i < lines.length; i++) {
         const values = lines[i].split(',');
-        if (values.length < headers.length) continue;
+        if (values.length < mappedHeaders.length) continue;
 
         let row = {};
         let hasValue = false;
-        headers.forEach((header, index) => {
-            const propName = columnMapping[header];
+        mappedHeaders.forEach((propName, index) => {
             if (propName) {
                 const value = values[index] ? values[index].trim() : '';
                 row[propName] = value;
@@ -93,51 +81,34 @@ function parseCSV(text) {
             }
         });
 
-        if (hasValue) {
+        if (hasValue && row.unidadeSaude) { // Garante que linhas vazias não sejam adicionadas
             data.push(row);
         }
     }
     return data;
 }
 
-/**
- * Filtra os dados com base nas seleções do utilizador e atualiza o painel.
- */
 function applyFilters() {
     const unidadeFilter = getMultiSelectValues('unidadeFilter');
     const laboratorioFilter = getMultiSelectValues('laboratorioFilter');
-    const dataInicio = document.getElementById('dataInicioFilter').value;
-    const dataFim = document.getElementById('dataFimFilter').value;
-
-    const startDate = dataInicio ? new Date(dataInicio + 'T00:00:00') : null;
-    const endDate = dataFim ? new Date(dataFim + 'T23:59:59') : null;
+    const horarioFilter = getMultiSelectValues('horarioFilter');
 
     filteredData = allData.filter(item => {
         if (unidadeFilter.length > 0 && !unidadeFilter.includes(item.unidadeSaude)) return false;
         if (laboratorioFilter.length > 0 && !laboratorioFilter.includes(item.laboratorioColeta)) return false;
-
-        const itemDate = parseDate(item.data);
-        if (startDate && (!itemDate || itemDate < startDate)) return false;
-        if (endDate && (!itemDate || itemDate > endDate)) return false;
-
+        if (horarioFilter.length > 0 && !horarioFilter.includes(item.horario)) return false;
+        
         return true;
     });
 
     updateDashboard();
 }
 
-/**
- * Limpa todos os filtros e recarrega o painel com todos os dados.
- */
 function clearFilters() {
-    document.getElementById('unidadeFilter').selectedIndex = -1;
-    document.getElementById('laboratorioFilter').selectedIndex = -1;
-    document.getElementById('dataInicioFilter').value = '';
-    document.getElementById('dataFimFilter').value = '';
-    
-    // Re-seleciona as opções nos filtros para refletir a limpeza (se usar uma biblioteca de multi-select)
-    // Para selects nativos, o código acima é suficiente.
-
+    ['unidadeFilter', 'laboratorioFilter', 'horarioFilter'].forEach(id => {
+        const select = document.getElementById(id);
+        Array.from(select.options).forEach(option => option.selected = false);
+    });
     applyFilters();
 }
 
@@ -145,35 +116,25 @@ function clearFilters() {
 // FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE (UI)
 // =================================================================================
 
-/**
- * Atualiza todos os componentes do painel: KPIs, gráficos e tabela.
- */
 function updateDashboard() {
     updateKPIs();
     updateCharts();
     updateTable();
 }
 
-/**
- * Popula os menus de seleção de filtros com opções únicas da base de dados.
- */
 function populateFilterOptions() {
     const unidades = [...new Set(allData.map(item => item.unidadeSaude).filter(Boolean))].sort();
     const laboratorios = [...new Set(allData.map(item => item.laboratorioColeta).filter(Boolean))].sort();
+    const horarios = [...new Set(allData.map(item => item.horario).filter(Boolean))].sort();
 
-    const unidadeSelect = document.getElementById('unidadeFilter');
-    const laboratorioSelect = document.getElementById('laboratorioFilter');
-
-    unidadeSelect.innerHTML = unidades.map(u => `<option value="${u}">${u}</option>`).join('');
-    laboratorioSelect.innerHTML = laboratorios.map(l => `<option value="${l}">${l}</option>`).join('');
+    document.getElementById('unidadeFilter').innerHTML = unidades.map(u => `<option value="${u}">${u}</option>`).join('');
+    document.getElementById('laboratorioFilter').innerHTML = laboratorios.map(l => `<option value="${l}">${l}</option>`).join('');
+    document.getElementById('horarioFilter').innerHTML = horarios.map(h => `<option value="${h}">${h}</option>`).join('');
 }
 
-/**
- * Atualiza os cartões de indicadores (KPIs).
- */
 function updateKPIs() {
     const totalVagas = filteredData.length;
-    const vagasOcupadas = filteredData.filter(item => item.nomePaciente && item.nomePaciente !== 'Preencher').length;
+    const vagasOcupadas = filteredData.filter(item => item.nomePaciente && item.nomePaciente.trim() !== '').length;
     const vagasLivres = totalVagas - vagasOcupadas;
     const taxaOcupacao = totalVagas > 0 ? ((vagasOcupadas / totalVagas) * 100).toFixed(1) : 0;
 
@@ -200,42 +161,74 @@ function updateKPIs() {
     `).join('');
 }
 
-/**
- * Atualiza os gráficos com os dados filtrados.
- */
 function updateCharts() {
-    Chart.register(ChartDataLabels); // Garante que o plugin de labels está ativo
-
-    // Dados para o gráfico de vagas por unidade
-    const vagasPorUnidade = countBy(filteredData.filter(d => d.nomePaciente), 'unidadeSaude');
-    const sortedUnidades = Object.entries(vagasPorUnidade).sort((a, b) => b[1] - a[1]);
+    Chart.register(ChartDataLabels);
     
-    // Dados para o gráfico de distribuição por laboratório
-    const vagasPorLab = countBy(filteredData.filter(d => d.nomePaciente), 'laboratorioColeta');
+    // Gerar dados para os novos gráficos
+    const ultimaDataUnidade = getUltimaDataPorGrupo(filteredData, 'unidadeSaude');
+    const ultimaDataLaboratorio = getUltimaDataPorGrupo(filteredData, 'laboratorioColeta');
 
-    // Gráfico 1: Vagas por Unidade (Barras)
-    createOrUpdateChart('chartVagasUnidade', 'bar', {
-        labels: sortedUnidades.map(item => item[0]),
+    // Gráfico 1: Última Data por Unidade
+    createOrUpdateChart('chartUltimaDataUnidade', 'bar', {
+        labels: ultimaDataUnidade.map(item => item.grupo),
         datasets: [{
-            label: 'Vagas Ocupadas',
-            data: sortedUnidades.map(item => item[1]),
-            backgroundColor: '#3b82f6',
+            label: 'Última Data',
+            data: ultimaDataUnidade.map(item => item.ultimaData),
+            backgroundColor: '#e53e3e', // Vermelho
         }]
-    }, { indexAxis: 'y', scales: { y: { ticks: { font: { size: 10 } } } } });
+    }, {
+        indexAxis: 'y',
+        scales: {
+            x: {
+                ticks: { display: false }, // Esconde os ticks do eixo X
+                grid: { display: false }
+            },
+            y: {
+                ticks: { font: { size: 10 } }
+            }
+        },
+        plugins: {
+            datalabels: {
+                anchor: 'end',
+                align: 'end',
+                color: '#333',
+                font: { weight: 'bold' },
+                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR') : ''
+            }
+        }
+    });
 
-    // Gráfico 2: Distribuição por Laboratório (Pizza)
-    createOrUpdateChart('chartVagasLaboratorio', 'pie', {
-        labels: Object.keys(vagasPorLab),
+    // Gráfico 2: Última Data por Laboratório
+    createOrUpdateChart('chartUltimaDataLaboratorio', 'bar', {
+        labels: ultimaDataLaboratorio.map(item => item.grupo),
         datasets: [{
-            data: Object.values(vagasPorLab),
-            backgroundColor: ['#ef4444', '#f97316', '#84cc16', '#10b981', '#6366f1', '#a855f7'],
+            label: 'Última Data',
+            data: ultimaDataLaboratorio.map(item => item.ultimaData),
+            backgroundColor: '#dd6b20', // Laranja
         }]
+    }, {
+        indexAxis: 'y',
+        scales: {
+            x: {
+                ticks: { display: false },
+                grid: { display: false }
+            },
+            y: {
+                ticks: { font: { size: 12 } }
+            }
+        },
+        plugins: {
+            datalabels: {
+                anchor: 'end',
+                align: 'end',
+                color: '#333',
+                font: { weight: 'bold' },
+                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR') : ''
+            }
+        }
     });
 }
 
-/**
- * Atualiza a tabela de dados detalhados.
- */
 function updateTable() {
     if (dataTable) {
         dataTable.destroy();
@@ -262,9 +255,6 @@ function updateTable() {
     });
 }
 
-/**
- * Exporta os dados filtrados para um ficheiro Excel.
- */
 function exportToExcel() {
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();
@@ -272,16 +262,10 @@ function exportToExcel() {
     XLSX.writeFile(workbook, `Consolidado_Eldorado_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-
 // =================================================================================
 // FUNÇÕES AUXILIARES
 // =================================================================================
 
-/**
- * Atualiza o indicador visual de status da conexão.
- * @param {'online'|'offline'|'loading'} status - O status atual.
- * @param {string} text - O texto a ser exibido.
- */
 function updateConnectionStatus(status, text) {
     const statusIndicator = document.getElementById('connectionStatus');
     const statusText = document.getElementById('connectionText');
@@ -289,48 +273,37 @@ function updateConnectionStatus(status, text) {
     statusText.textContent = text;
 }
 
-/**
- * Converte uma data em formato 'DD/MM/YYYY' para um objeto Date.
- * @param {string} dateStr - A data em formato string.
- * @returns {Date|null}
- */
 function parseDate(dateStr) {
     if (!dateStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return null;
     const [day, month, year] = dateStr.split('/');
     return new Date(year, month - 1, day);
 }
 
-/**
- * Obtém os valores selecionados de um elemento <select> múltiplo.
- * @param {string} elementId - O ID do elemento select.
- * @returns {Array<string>}
- */
 function getMultiSelectValues(elementId) {
     const select = document.getElementById(elementId);
     return Array.from(select.selectedOptions).map(option => option.value);
 }
 
 /**
- * Agrupa e conta ocorrências num array de objetos por uma propriedade específica.
- * @param {Array<Object>} data - O array de dados.
- * @param {string} key - A propriedade pela qual agrupar.
- * @returns {Object} - Um objeto com as contagens.
+ * NOVA FUNÇÃO: Encontra a data mais recente para cada grupo (unidade, laboratório, etc.).
  */
-function countBy(data, key) {
-    return data.reduce((acc, item) => {
-        const group = item[key] || 'Não especificado';
-        acc[group] = (acc[group] || 0) + 1;
-        return acc;
-    }, {});
+function getUltimaDataPorGrupo(data, key) {
+    const grupos = {};
+    data.forEach(item => {
+        const grupo = item[key];
+        const dataAgendamento = parseDate(item.data);
+        if (grupo && dataAgendamento) {
+            if (!grupos[grupo] || dataAgendamento > grupos[grupo]) {
+                grupos[grupo] = dataAgendamento;
+            }
+        }
+    });
+
+    return Object.entries(grupos)
+        .map(([grupo, ultimaData]) => ({ grupo, ultimaData }))
+        .sort((a, b) => b.ultimaData - a.ultimaData);
 }
 
-/**
- * Cria um novo gráfico ou atualiza um existente.
- * @param {string} canvasId - O ID do elemento canvas.
- * @param {string} type - O tipo de gráfico (ex: 'bar', 'pie').
- * @param {Object} data - Os dados para o gráfico.
- * @param {Object} customOptions - Opções de configuração personalizadas.
- */
 function createOrUpdateChart(canvasId, type, data, customOptions = {}) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     if (charts[canvasId]) {
@@ -341,9 +314,7 @@ function createOrUpdateChart(canvasId, type, data, customOptions = {}) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: type === 'pie' ? 'top' : 'none',
-            },
+            legend: { display: false }, // Legenda desativada por padrão para os novos gráficos
             datalabels: {
                 color: '#fff',
                 font: { weight: 'bold' },
@@ -363,7 +334,6 @@ function createOrUpdateChart(canvasId, type, data, customOptions = {}) {
 // INICIALIZAÇÃO
 // =================================================================================
 
-// Carrega os dados assim que o DOM estiver pronto.
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     // Opcional: recarregar os dados a cada 5 minutos
