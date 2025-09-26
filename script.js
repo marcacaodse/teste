@@ -25,7 +25,9 @@ async function loadData( ) {
         allData = parseCSV(csvText);
         
         if (allData.length === 0) {
-            throw new Error("Nenhum dado encontrado na planilha. Verifique o formato.");
+            updateConnectionStatus('offline', 'Nenhum dado encontrado na planilha. Verifique o formato do CSV.');
+            console.error("A função parseCSV retornou um array vazio. Verifique os cabeçalhos na planilha e no código.");
+            return; // Interrompe a execução se não houver dados
         }
 
         populateFilterOptions();
@@ -44,49 +46,71 @@ async function loadData( ) {
 // FUNÇÕES DE PROCESSAMENTO E FILTRAGEM
 // =================================================================================
 
+/**
+ * Converte o texto CSV bruto num array de objetos.
+ * ESTA FUNÇÃO FOI CORRIGIDA PARA SER MAIS ROBUSTA.
+ * @param {string} text - O conteúdo do ficheiro CSV.
+ * @returns {Array<Object>}
+ */
 function parseCSV(text) {
     const lines = text.trim().split('\n');
     const headerIndex = lines.findIndex(line => line.toUpperCase().includes('UNIDADE DE SAUDE'));
-    if (headerIndex === -1) return [];
+    if (headerIndex === -1) {
+        console.error("Cabeçalho 'UNIDADE DE SAUDE' não encontrado no CSV.");
+        return [];
+    }
 
     const headers = lines[headerIndex].split(',').map(h => h.trim().toUpperCase());
     const data = [];
 
-    // Mapeamento corrigido e completo das colunas
+    // Mapeamento das propriedades do objeto para os possíveis nomes de cabeçalho
     const columnMapping = {
-        'UNIDADE DE SAUDE': 'unidadeSaude',
-        'DATA': 'data',
-        'HORARIO': 'horario',
-        'NOME DO PACIENTE': 'nomePaciente',
-        'TELEFONE': 'telefone',
-        'Nº PRONTUÁRIO VIVVER': 'prontuario',
-        'OBSERVAÇÃO/ UNIDADE DE SAÚDE': 'observacao',
-        'PERFIL DO PACIENTE OU TIPO DO EXAME': 'perfilExame',
-        'LABORATÓRIO DE COLETA': 'laboratorioColeta' // CORREÇÃO APLICADA AQUI
+        unidadeSaude: 'UNIDADE DE SAUDE',
+        data: 'DATA',
+        horario: 'HORARIO',
+        nomePaciente: 'NOME DO PACIENTE',
+        prontuario: 'Nº PRONTUÁRIO VIVVER',
+        observacao: 'OBSERVAÇÃO/ UNIDADE DE SAÚDE',
+        perfilExame: 'PERFIL DO PACIENTE OU TIPO DO EXAME',
+        laboratorioColeta: 'LABORATÓRIO DE COLETA'
     };
-    
-    const mappedHeaders = headers.map(h => columnMapping[h]);
+
+    // Encontra o índice de cada coluna necessária
+    const headerIndexes = {};
+    for (const key in columnMapping) {
+        const index = headers.indexOf(columnMapping[key]);
+        headerIndexes[key] = index;
+        if (index === -1) {
+            console.warn(`Aviso: A coluna '${columnMapping[key]}' não foi encontrada na planilha.`);
+        }
+    }
 
     for (let i = headerIndex + 1; i < lines.length; i++) {
         const values = lines[i].split(',');
-        if (values.length < mappedHeaders.length) continue;
+        
+        // Pula linhas que não parecem ser de dados válidos
+        if (values.length < 2 || !values[headerIndexes.unidadeSaude]) {
+            continue;
+        }
 
         let row = {};
         let hasValue = false;
-        mappedHeaders.forEach((propName, index) => {
-            if (propName) {
+        for (const key in headerIndexes) {
+            const index = headerIndexes[key];
+            if (index !== -1) {
                 const value = values[index] ? values[index].trim() : '';
-                row[propName] = value;
+                row[key] = value;
                 if (value) hasValue = true;
             }
-        });
+        }
 
-        if (hasValue && row.unidadeSaude) { // Garante que linhas vazias não sejam adicionadas
+        if (hasValue) {
             data.push(row);
         }
     }
     return data;
 }
+
 
 function applyFilters() {
     const unidadeFilter = getMultiSelectValues('unidadeFilter');
@@ -164,66 +188,43 @@ function updateKPIs() {
 function updateCharts() {
     Chart.register(ChartDataLabels);
     
-    // Gerar dados para os novos gráficos
     const ultimaDataUnidade = getUltimaDataPorGrupo(filteredData, 'unidadeSaude');
     const ultimaDataLaboratorio = getUltimaDataPorGrupo(filteredData, 'laboratorioColeta');
 
-    // Gráfico 1: Última Data por Unidade
     createOrUpdateChart('chartUltimaDataUnidade', 'bar', {
         labels: ultimaDataUnidade.map(item => item.grupo),
         datasets: [{
             label: 'Última Data',
             data: ultimaDataUnidade.map(item => item.ultimaData),
-            backgroundColor: '#e53e3e', // Vermelho
+            backgroundColor: '#e53e3e',
         }]
     }, {
         indexAxis: 'y',
-        scales: {
-            x: {
-                ticks: { display: false }, // Esconde os ticks do eixo X
-                grid: { display: false }
-            },
-            y: {
-                ticks: { font: { size: 10 } }
-            }
-        },
+        scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } },
         plugins: {
+            legend: { display: false },
             datalabels: {
-                anchor: 'end',
-                align: 'end',
-                color: '#333',
-                font: { weight: 'bold' },
-                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR') : ''
+                anchor: 'end', align: 'end', color: '#333', font: { weight: 'bold' },
+                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''
             }
         }
     });
 
-    // Gráfico 2: Última Data por Laboratório
     createOrUpdateChart('chartUltimaDataLaboratorio', 'bar', {
         labels: ultimaDataLaboratorio.map(item => item.grupo),
         datasets: [{
             label: 'Última Data',
             data: ultimaDataLaboratorio.map(item => item.ultimaData),
-            backgroundColor: '#dd6b20', // Laranja
+            backgroundColor: '#dd6b20',
         }]
     }, {
         indexAxis: 'y',
-        scales: {
-            x: {
-                ticks: { display: false },
-                grid: { display: false }
-            },
-            y: {
-                ticks: { font: { size: 12 } }
-            }
-        },
+        scales: { x: { display: false }, y: { ticks: { font: { size: 12 } } } },
         plugins: {
+            legend: { display: false },
             datalabels: {
-                anchor: 'end',
-                align: 'end',
-                color: '#333',
-                font: { weight: 'bold' },
-                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR') : ''
+                anchor: 'end', align: 'end', color: '#333', font: { weight: 'bold' },
+                formatter: (value) => value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''
             }
         }
     });
@@ -284,9 +285,6 @@ function getMultiSelectValues(elementId) {
     return Array.from(select.selectedOptions).map(option => option.value);
 }
 
-/**
- * NOVA FUNÇÃO: Encontra a data mais recente para cada grupo (unidade, laboratório, etc.).
- */
 function getUltimaDataPorGrupo(data, key) {
     const grupos = {};
     data.forEach(item => {
@@ -314,7 +312,7 @@ function createOrUpdateChart(canvasId, type, data, customOptions = {}) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { display: false }, // Legenda desativada por padrão para os novos gráficos
+            legend: { display: false },
             datalabels: {
                 color: '#fff',
                 font: { weight: 'bold' },
@@ -336,6 +334,4 @@ function createOrUpdateChart(canvasId, type, data, customOptions = {}) {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    // Opcional: recarregar os dados a cada 5 minutos
-    // setInterval(loadData, 300000); 
 });
