@@ -19,15 +19,16 @@ async function loadData( ) {
     updateConnectionStatus('loading', 'A carregar dados...');
     try {
         const response = await fetch(SHEET_URL);
-        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-        
+        if (!response.ok) {
+            throw new Error(`Erro de rede: ${response.statusText}`);
+        }
         const csvText = await response.text();
+        
+        // REVERTIDO PARA A SUA FUNÇÃO ORIGINAL DE PARSE, QUE JÁ FUNCIONAVA
         allData = parseCSV(csvText);
         
         if (allData.length === 0) {
-            updateConnectionStatus('offline', 'Nenhum dado encontrado na planilha. Verifique o formato do CSV.');
-            console.error("A função parseCSV retornou um array vazio. Verifique os cabeçalhos na planilha e no código.");
-            return; // Interrompe a execução se não houver dados
+            throw new Error("Nenhum dado encontrado na planilha. Verifique o formato.");
         }
 
         populateFilterOptions();
@@ -48,61 +49,44 @@ async function loadData( ) {
 
 /**
  * Converte o texto CSV bruto num array de objetos.
- * ESTA FUNÇÃO FOI CORRIGIDA PARA SER MAIS ROBUSTA.
+ * ESTA É A SUA FUNÇÃO ORIGINAL, MANTIDA CONFORME SOLICITADO.
  * @param {string} text - O conteúdo do ficheiro CSV.
  * @returns {Array<Object>}
  */
 function parseCSV(text) {
     const lines = text.trim().split('\n');
-    const headerIndex = lines.findIndex(line => line.toUpperCase().includes('UNIDADE DE SAUDE'));
-    if (headerIndex === -1) {
-        console.error("Cabeçalho 'UNIDADE DE SAUDE' não encontrado no CSV.");
-        return [];
-    }
+    const headerIndex = lines.findIndex(line => line.includes('UNIDADE DE SAÚDE'));
+    if (headerIndex === -1) return [];
 
-    const headers = lines[headerIndex].split(',').map(h => h.trim().toUpperCase());
+    const headers = lines[headerIndex].split(',').map(h => h.trim());
     const data = [];
 
-    // Mapeamento das propriedades do objeto para os possíveis nomes de cabeçalho
     const columnMapping = {
-        unidadeSaude: 'UNIDADE DE SAUDE',
-        data: 'DATA',
-        horario: 'HORARIO',
-        nomePaciente: 'NOME DO PACIENTE',
-        prontuario: 'Nº PRONTUÁRIO VIVVER',
-        observacao: 'OBSERVAÇÃO/ UNIDADE DE SAÚDE',
-        perfilExame: 'PERFIL DO PACIENTE OU TIPO DO EXAME',
-        laboratorioColeta: 'LABORATÓRIO DE COLETA'
+        'UNIDADE DE SAÚDE': 'unidadeSaude',
+        'DATA': 'data',
+        'HORÁRIO': 'horario',
+        'NOME DO PACIENTE': 'nomePaciente',
+        'TELEFONE': 'telefone',
+        'Nº PRONTUÁRIO VIVVER': 'prontuario',
+        'OBSERVAÇÃO/ UNIDADE DE SAÚDE': 'observacao',
+        'PERFIL DO PACIENTE OU TIPO DO EXAME': 'perfilExame',
+        'Laboratório de Coleta': 'laboratorioColeta'
     };
-
-    // Encontra o índice de cada coluna necessária
-    const headerIndexes = {};
-    for (const key in columnMapping) {
-        const index = headers.indexOf(columnMapping[key]);
-        headerIndexes[key] = index;
-        if (index === -1) {
-            console.warn(`Aviso: A coluna '${columnMapping[key]}' não foi encontrada na planilha.`);
-        }
-    }
 
     for (let i = headerIndex + 1; i < lines.length; i++) {
         const values = lines[i].split(',');
-        
-        // Pula linhas que não parecem ser de dados válidos
-        if (values.length < 2 || !values[headerIndexes.unidadeSaude]) {
-            continue;
-        }
+        if (values.length < headers.length) continue;
 
         let row = {};
         let hasValue = false;
-        for (const key in headerIndexes) {
-            const index = headerIndexes[key];
-            if (index !== -1) {
+        headers.forEach((header, index) => {
+            const propName = columnMapping[header];
+            if (propName) {
                 const value = values[index] ? values[index].trim() : '';
-                row[key] = value;
+                row[propName] = value;
                 if (value) hasValue = true;
             }
-        }
+        });
 
         if (hasValue) {
             data.push(row);
@@ -112,6 +96,10 @@ function parseCSV(text) {
 }
 
 
+/**
+ * Filtra os dados com base nas seleções do utilizador e atualiza o painel.
+ * LÓGICA ATUALIZADA PARA OS NOVOS FILTROS.
+ */
 function applyFilters() {
     const unidadeFilter = getMultiSelectValues('unidadeFilter');
     const laboratorioFilter = getMultiSelectValues('laboratorioFilter');
@@ -121,13 +109,17 @@ function applyFilters() {
         if (unidadeFilter.length > 0 && !unidadeFilter.includes(item.unidadeSaude)) return false;
         if (laboratorioFilter.length > 0 && !laboratorioFilter.includes(item.laboratorioColeta)) return false;
         if (horarioFilter.length > 0 && !horarioFilter.includes(item.horario)) return false;
-        
+
         return true;
     });
 
     updateDashboard();
 }
 
+/**
+ * Limpa todos os filtros e recarrega o painel com todos os dados.
+ * LÓGICA ATUALIZADA PARA OS NOVOS FILTROS.
+ */
 function clearFilters() {
     ['unidadeFilter', 'laboratorioFilter', 'horarioFilter'].forEach(id => {
         const select = document.getElementById(id);
@@ -141,11 +133,15 @@ function clearFilters() {
 // =================================================================================
 
 function updateDashboard() {
-    updateKPIs();
-    updateCharts();
-    updateTable();
+    updateKPIs(); // Mantido para mostrar os totais
+    updateCharts(); // ATUALIZADO PARA OS NOVOS GRÁFICOS
+    updateTable(); // ATUALIZADO PARA A NOVA COLUNA
 }
 
+/**
+ * Popula os menus de seleção de filtros com opções únicas da base de dados.
+ * LÓGICA ATUALIZADA PARA OS NOVOS FILTROS.
+ */
 function populateFilterOptions() {
     const unidades = [...new Set(allData.map(item => item.unidadeSaude).filter(Boolean))].sort();
     const laboratorios = [...new Set(allData.map(item => item.laboratorioColeta).filter(Boolean))].sort();
@@ -185,6 +181,10 @@ function updateKPIs() {
     `).join('');
 }
 
+/**
+ * Atualiza os gráficos com os dados filtrados.
+ * LÓGICA ATUALIZADA PARA OS NOVOS GRÁFICOS.
+ */
 function updateCharts() {
     Chart.register(ChartDataLabels);
     
@@ -230,6 +230,10 @@ function updateCharts() {
     });
 }
 
+/**
+ * Atualiza a tabela de dados detalhados.
+ * LÓGICA ATUALIZADA PARA INCLUIR A COLUNA 'TELEFONE'.
+ */
 function updateTable() {
     if (dataTable) {
         dataTable.destroy();
@@ -241,6 +245,7 @@ function updateTable() {
             <td>${item.data || ''}</td>
             <td>${item.horario || ''}</td>
             <td>${item.nomePaciente || ''}</td>
+            <td>${item.telefone || ''}</td>
             <td>${item.prontuario || ''}</td>
             <td>${item.observacao || ''}</td>
             <td>${item.perfilExame || ''}</td>
@@ -285,6 +290,9 @@ function getMultiSelectValues(elementId) {
     return Array.from(select.selectedOptions).map(option => option.value);
 }
 
+/**
+ * NOVA FUNÇÃO: Encontra a data mais recente para cada grupo (unidade, laboratório, etc.).
+ */
 function getUltimaDataPorGrupo(data, key) {
     const grupos = {};
     data.forEach(item => {
