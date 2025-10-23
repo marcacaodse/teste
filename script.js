@@ -371,7 +371,7 @@ function updateFilterDisplays() {
 
     // Data
     const dataSelecionada = document.getElementById('dataFilter').value;
-    const dataTexto = dataSelecionada ? [new Date(dataSelecionada).toLocaleDateString('pt-BR')] : [];
+    const dataTexto = dataSelecionada ? [new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR')] : [];
     updateFilterDisplay('dataSelected', dataTexto, 'Data selecionada');
 
     // Horários
@@ -406,12 +406,19 @@ function updateFilterDisplay(containerId, selectedItems, labelText) {
     `;
 }
 
+// FUNÇÃO CORRIGIDA: applyFilters com comparação de data corrigida
 function applyFilters() {
     const unidadeSaudeFilter = $('#unidadeSaudeFilter').val() || [];
     const laboratorioColetaFilter = $('#laboratorioColetaFilter').val() || [];
     const mesAnoFilter = $('#mesAnoFilter').val() || [];
-    const dataFilter = document.getElementById('dataFilter').value;
+    const dataFilterValue = document.getElementById('dataFilter').value;
     const horarioFilter = $('#horarioFilter').val() || [];
+
+    // Converter a data do filtro (formato ISO YYYY-MM-DD) para objeto Date
+    let filterDate = null;
+    if (dataFilterValue) {
+        filterDate = new Date(dataFilterValue + 'T00:00:00'); // Adiciona horário para evitar problemas de timezone
+    }
 
     // FILTRAR POR DADOS REAIS (allData) APLICANDO TODOS OS FILTROS
     filteredData = allData.filter(item => {
@@ -430,11 +437,18 @@ function applyFilters() {
             }
         }
         
+        // CORREÇÃO: Comparação de data corrigida
         let inDate = true;
-        if (dataFilter) {
+        if (filterDate) {
             const itemDate = item.dataAgendamento ? parseDate(item.dataAgendamento) : null;
-            const filterDate = new Date(dataFilter);
-            inDate = itemDate && itemDate.toDateString() === filterDate.toDateString();
+            if (itemDate) {
+                // Normalizar ambas as datas para meia-noite para comparação correta
+                const itemDateNormalized = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
+                const filterDateNormalized = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+                inDate = itemDateNormalized.getTime() === filterDateNormalized.getTime();
+            } else {
+                inDate = false;
+            }
         }
 
         return inUnidade && inLaboratorio && inMesAno && inDate && inHorario;
@@ -448,6 +462,7 @@ function parseDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.split('/');
     if (parts.length === 3) {
+        // DD/MM/YYYY
         return new Date(parts[2], parts[1] - 1, parts[0]);
     }
     return null;
@@ -458,8 +473,8 @@ function updateStats() {
     const totalVagas = filteredData.length;
     // CORREÇÃO: Usar função central para verificar pacientes agendados baseado na coluna F
     const vagasOcupadas = filteredData.filter(item => isPacienteAgendado(item.nomePaciente)).length;
-    const vagasLivres = totalVagas - vagasOcupadas - filteredData.filter(item => isVagaBloqueada(item.nomePaciente)).length;
     const vagasBloqueadas = filteredData.filter(item => isVagaBloqueada(item.nomePaciente)).length;
+    const vagasLivres = totalVagas - vagasOcupadas - vagasBloqueadas;
     const taxaOcupacao = totalVagas > 0 ? (vagasOcupadas / totalVagas * 100).toFixed(1) + '%' : '0.0%';
 
     document.getElementById('totalVagas').textContent = totalVagas.toLocaleString();
@@ -477,7 +492,7 @@ Chart.register(ChartDataLabels);
 function updateDashboard() {
     updateVagasUnidadeCards();
     updateVagasLivresUnidadeCards();
-    updateVagasBloqueadasUnidadeCards();  // <--- ADICIONADO
+    updateVagasBloqueadasUnidadeCards();
     updateCharts();
     updateTable();
     updateSummaryTables();
@@ -1255,11 +1270,14 @@ function updateSummaryTableWithTotal(tableId, data) {
     return 0;
 }
 
+// FUNÇÃO CORRIGIDA: clearFilters agora limpa o campo de data também
 function clearFilters() {
     $('.filter-select').val(null).trigger('change');
-    document.getElementById('dataFilter').value = '';
-    applyFilters();
-    updateFilterDisplays();
+    document.getElementById('dataFilter').value = ''; // CORREÇÃO: Limpa o campo de data
+    filteredData = [...allData]; // Restaura todos os dados
+    updateDashboard();
+    updateStats();
+    updateFilterDisplays(); // Atualiza as exibições dos filtros
 }
 
 // EXPORTAÇÃO CORRIGIDA: Sem nome do paciente e telefone
