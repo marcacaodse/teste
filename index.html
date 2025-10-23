@@ -33,20 +33,22 @@
                 <h3 class="text-lg font-semibold text-gray-800">Filtros de Dados - Planilha Atualizada em <span id="lastUpdateDate">29/09/2025</span></h3>
             </div>
 
-            <!-- Filtro Mês/Ano -->
-                <div>
-                    <label class="mes-ano-label">Selecione o Período Mês/Ano</label>
-                    <select id="mesAnoFilter" class="filter-select mes-ano-select" multiple="multiple" style="width: 100%;">
-                        <!-- Opções serão preenchidas dinamicamente -->
-                    </select>
-                    <!-- Container para mostrar seleções -->
-                    <div id="mesAnoSelected" class="selected-filters-display mt-2"></div>
-                </div>
+            <!-- Filtro Mês/Ano - DESTACADO -->
+            <div class="mb-6">
+                <label class="mes-ano-label">
+                    <i class="fas fa-calendar-alt mr-2"></i>Selecione o Período Mês/Ano
+                </label>
+                <select id="mesAnoFilter" class="filter-select mes-ano-select" multiple="multiple" style="width: 100%;">
+                    <!-- Opções serão preenchidas dinamicamente -->
+                </select>
+                <!-- Container para mostrar seleções -->
+                <div id="mesAnoSelected" class="selected-filters-display mt-2"></div>
+            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Filtro Unidades de Saúde -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidades de Saúde:</label>
+                    <label class="filter-label-hidden">Unidades de Saúde:</label>
                     <select id="unidadeSaudeFilter" class="filter-select" multiple="multiple" style="width: 100%;">
                         <!-- Opções serão preenchidas dinamicamente -->
                     </select>
@@ -56,7 +58,7 @@
 
                 <!-- Filtro Laboratório de Coleta -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Laboratório de Coleta:</label>
+                    <label class="filter-label-hidden">Laboratório de Coleta:</label>
                     <select id="laboratorioColetaFilter" class="filter-select" multiple="multiple" style="width: 100%;">
                         <!-- Opções serão preenchidas dinamicamente -->
                     </select>
@@ -66,7 +68,7 @@
 
                 <!-- Filtro Data -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Data:</label>
+                    <label class="filter-label-hidden">Data:</label>
                     <input type="date" id="dataFilter" class="filter-input" min="2025-11-01">
                     <!-- Container para mostrar seleção -->
                     <div id="dataSelected" class="selected-filters-display mt-2"></div>
@@ -74,7 +76,7 @@
 
                 <!-- Filtro Horários -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hora:</label>
+                    <label class="filter-label-hidden">Hora:</label>
                     <select id="horarioFilter" class="filter-select" multiple="multiple" style="width: 100%;">
                         <!-- Opções serão preenchidas dinamicamente -->
                     </select>
