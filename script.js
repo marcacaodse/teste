@@ -573,40 +573,23 @@ function updateVagasLivresUnidadeCards() {
 function updateVagasBloqueadasUnidadeCards() {
     const container = document.getElementById('vagasBloqueadasUnidadeContainer');
     if (!container) return;
-
-    const datasetBase = hasActiveFilters() ? filteredData : allData;
-    const vagasBloqueadasPorUnidade = {};
-    
-    // Inicializar todas as unidades com 0
+    container.innerHTML = '';
     UNIDADES_SAUDE.forEach(unidade => {
-        vagasBloqueadasPorUnidade[unidade] = 0;
-    });
-    
-    // Contar apenas as vagas BLOQUEADAS
-    datasetBase.forEach(item => {
-        if (item.unidadeSaude && UNIDADES_SAUDE.includes(item.unidadeSaude)) {
-            if (isVagaBloqueada(item.nomePaciente)) {
-                vagasBloqueadasPorUnidade[item.unidadeSaude]++;
-            }
-        }
-    });
-
-    // 🔴 Cards agora com fundo vermelho claro
-    const cardsHTML = UNIDADES_SAUDE.map((unidade) => {
-        const total = vagasBloqueadasPorUnidade[unidade] || 0;
-        
-        return `
-            <div class="bg-light-red-card rounded-lg shadow-md p-6 border-l-4 border-l-red-400 hover:shadow-lg transition-shadow duration-200">
-                <div class="text-center">
-                    <p class="text-lg font-bold text-gray-800 mb-3">${unidade}</p>
-                    <p class="text-3xl font-bold text-red-700 mb-1">${total.toLocaleString()}</p>
-                    <p class="text-sm text-gray-600">vagas bloqueadas</p>
-                </div>
+        const total = filteredData.filter(item => item.unidadeSaude === unidade && isVagaBloqueada(item.nomePaciente)).length;
+        const card = document.createElement('div');
+        card.className = `
+            bg-red-100 rounded-lg shadow-md p-6 border-l-4 border-l-red-300
+            hover:shadow-lg transition-shadow duration-200
+        `;
+        card.innerHTML = `
+            <div class="text-center">
+                <p class="text-lg font-bold text-gray-800 mb-3">${unidade}</p>
+                <p class="text-3xl font-bold text-red-600 mb-1">${total.toLocaleString()}</p>
+                <p class="text-sm text-gray-600">vagas bloqueadas</p>
             </div>
         `;
-    }).join('');
-
-    container.innerHTML = cardsHTML;
+        container.appendChild(card);
+    });
 }
 
 function updateCharts() {
