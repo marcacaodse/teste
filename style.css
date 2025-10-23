@@ -1,0 +1,462 @@
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+}
+
+/* Header com Gradiente Azul */
+.header-gradient {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="white" opacity="0.1"><polygon points="0,0 1000,0 1000,100 0,80"/></svg>');
+    background-size: cover;
+}
+
+.header-gradient > div {
+    position: relative;
+    z-index: 1;
+}
+
+/* Cards e Componentes */
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+/* Container para tabelas pequenas com barra de rolagem */
+.table-container-small {
+    position: relative;
+}
+
+.table-container-small .overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.table-container-small .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-container-small .overflow-y-auto::-webkit-scrollbar-track {
+    background: #f7fafc;
+    border-radius: 3px;
+}
+
+.table-container-small .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.table-container-small .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Cabeçalhos sticky para tabelas pequenas */
+.table-container-small thead th {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Filtros */
+.filter-select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: white;
+    font-size: 14px;
+}
+
+.filter-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: white;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* NOVO: Estilo específico para o filtro Mês/Ano */
+.mes-ano-label {
+    display: block;
+    color: #dc2626 !important; /* Vermelho */
+    font-weight: bold !important; /* Negrito */
+    font-size: 16px !important; /* Ligeiramente maior */
+    margin-bottom: 8px;
+}
+
+.mes-ano-select {
+    border: 2px solid #87ceeb !important; /* Borda azul claro */
+    border-radius: 8px !important;
+    box-shadow: 0 0 8px rgba(135, 206, 235, 0.4) !important; /* Sombreamento azul claro */
+    transition: all 0.3s ease !important;
+}
+
+.mes-ano-select:focus {
+    box-shadow: 0 0 12px rgba(135, 206, 235, 0.6) !important; /* Sombreamento mais intenso no foco */
+    border-color: #5dade6 !important; /* Borda azul um pouco mais escura no foco */
+}
+
+/* NOVO: Estilo para exibição dos filtros selecionados */
+.selected-filters-display {
+    min-height: 20px;
+}
+
+.selected-filters-display .inline-block {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+/* Select2 Customização */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    min-height: 40px !important;
+    padding: 4px 8px !important;
+}
+
+.select2-container--default .select2-selection--multiple:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* NOVO: Select2 customização específica para o filtro Mês/Ano */
+#mesAnoFilter + .select2-container .select2-selection--multiple {
+    border: 2px solid #87ceeb !important; /* Borda azul claro */
+    box-shadow: 0 0 8px rgba(135, 206, 235, 0.4) !important; /* Sombreamento azul claro */
+    transition: all 0.3s ease !important;
+}
+
+#mesAnoFilter + .select2-container .select2-selection--multiple:focus-within {
+    box-shadow: 0 0 12px rgba(135, 206, 235, 0.6) !important; /* Sombreamento mais intenso no foco */
+    border-color: #5dade6 !important; /* Borda azul um pouco mais escura no foco */
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #3b82f6 !important;
+    border: 1px solid #3b82f6 !important;
+    border-radius: 6px !important;
+    color: white !important;
+    font-size: 12px !important;
+    padding: 2px 8px !important;
+    margin: 2px !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: white !important;
+    margin-right: 4px !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #fecaca !important;
+}
+
+/* Botões */
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Gráficos */
+.chart-container {
+    position: relative;
+    height: 400px;
+    padding: 20px;
+}
+
+/* Status Indicator */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-online {
+    background-color: #10b981;
+    animation: pulse 2s infinite;
+}
+
+.status-offline {
+    background-color: #ef4444;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* DataTables */
+.dataTables_wrapper {
+    padding: 20px;
+}
+
+.dataTables_filter input {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-left: 8px;
+}
+
+/* ========================================
+   CORES DOS CARDS - VAGAS AGENDADAS, LIVRES E BLOQUEADAS
+   ======================================== */
+
+/* Cards com fundo AZUL CLARINHO - Vagas Agendadas */
+.bg-light-blue-card {
+    background: linear-gradient(135deg, #EBF5FF 0%, #D6EBFF 100%) !important;
+    border: 1px solid #B8DAFF;
+}
+
+.bg-light-blue-card:hover {
+    background: linear-gradient(135deg, #D6EBFF 0%, #C2E0FF 100%) !important;
+    transform: translateY(-2px);
+}
+
+/* Cards com fundo VERDE CLARO - Vagas Livres (MODIFICADO) */
+.bg-light-green-card {
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%) !important;
+    border: 1px solid #6EE7B7;
+}
+
+.bg-light-green-card:hover {
+    background: linear-gradient(135deg, #A7F3D0 0%, #86EFAC 100%) !important;
+    transform: translateY(-2px);
+}
+
+/* Cards com fundo AMARELO CLARO - Vagas Bloqueadas (NOVO) */
+.bg-light-yellow-card {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%) !important;
+    border: 1px solid #FCD34D;
+}
+
+.bg-light-yellow-card:hover {
+    background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%) !important;
+    transform: translateY(-2px);
+}
+
+/* Ajustes para garantir legibilidade do texto */
+.bg-light-blue-card .text-blue-700 {
+    color: #1e40af !important;
+}
+
+.bg-light-green-card .text-green-700 {
+    color: #15803d !important;
+}
+
+.bg-light-yellow-card .text-yellow-700 {
+    color: #a16207 !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+        padding: 15px;
+    }
+    
+    .header-gradient {
+        padding: 20px 0;
+    }
+    
+    .header-gradient h1 {
+        font-size: 2rem;
+    }
+    
+    .stats-card {
+        padding: 16px;
+    }
+    
+    .grid {
+        gap: 16px;
+    }
+    
+    /* Mobile: Reduzir tamanho das etiquetas de filtros */
+    .selected-filters-display .inline-block {
+        max-width: 80px;
+        font-size: 10px;
+    }
+    
+    /* Mobile: Ajustar tamanho do texto do filtro Mês/Ano */
+    .mes-ano-label {
+        font-size: 14px !important;
+    }
+    
+    /* Responsividade para cards coloridos */
+    .bg-light-blue-card,
+    .bg-light-green-card,
+    .bg-light-yellow-card {
+        padding: 16px !important;
+    }
+}
+
+@media print {
+    body { 
+        background: white !important; 
+        font-size: 12px;
+    }
+    .card { 
+        box-shadow: none !important; 
+        border: 1px solid #ccc;
+        break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    .chart-container { 
+        height: 350px !important; 
+    }
+    .no-print { 
+        display: none !important; 
+    }
+    .header-gradient {
+        background: #1e3a8a !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    /* Ocultar exibições de filtros na impressão */
+    .selected-filters-display {
+        display: none !important;
+    }
+    
+    /* Print - manter cores dos cards ao imprimir */
+    .bg-light-blue-card {
+        background: #EBF5FF !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .bg-light-green-card {
+        background: #D1FAE5 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .bg-light-yellow-card {
+        background: #FEF3C7 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+}
+
+/* Container */
+.container {
+    width: 100%;
+}
+
+/* Loading */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
