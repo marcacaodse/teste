@@ -1270,14 +1270,19 @@ function updateSummaryTableWithTotal(tableId, data) {
     return 0;
 }
 
-// FUNÇÃO CORRIGIDA: clearFilters agora limpa o campo de data também
+// FUNÇÃO CORRIGIDA: clearFilters agora chama applyFilters após limpar
 function clearFilters() {
+    // Limpar Select2 (Unidade, Laboratório, Mês/Ano, Horário)
     $('.filter-select').val(null).trigger('change');
-    document.getElementById('dataFilter').value = ''; // CORREÇÃO: Limpa o campo de data
-    filteredData = [...allData]; // Restaura todos os dados
-    updateDashboard();
-    updateStats();
-    updateFilterDisplays(); // Atualiza as exibições dos filtros
+    
+    // Limpar campo de data
+    document.getElementById('dataFilter').value = '';
+    
+    // CORREÇÃO: Reaplicar filtros (que agora estão todos vazios)
+    applyFilters();
+    
+    // Atualizar as exibições dos filtros
+    updateFilterDisplays();
 }
 
 // EXPORTAÇÃO CORRIGIDA: Sem nome do paciente e telefone
