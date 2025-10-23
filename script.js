@@ -41,18 +41,24 @@ const CORES_VAGAS_LIVRES = [
 ];
 
 // ================================
-// FUNÇÕES DE VERIFICAÇÃO (ATUALIZADAS)
+// FUNÇÕES DE VERIFICAÇÃO (CORRIGIDAS)
 // ================================
 
-// FUNÇÃO ATUALIZADA: Verificar se um paciente está agendado
+// FUNÇÃO CORRIGIDA: Verificar se um paciente está agendado
 function isPacienteAgendado(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return false;
     }
     const nome = nomePaciente.trim().toLowerCase();
+    
+    // CORREÇÃO: Casos especiais que devem contar como agendados
+    if (nome.includes('possui paciente agendado')) {
+        return true;
+    }
+    
     // Verifica se NÃO é vaga livre e NÃO é vaga bloqueada
     const isLivre = nome === '' || nome === 'preencher';
-    const isBloqueada = nome.includes('vaga bloqueada');
+    const isBloqueada = nome.includes('vaga bloqueada') && !nome.includes('possui paciente agendado');
     return !isLivre && !isBloqueada;
 }
 
@@ -68,12 +74,19 @@ function isVagaLivre(nomePaciente) {
     return isLivre && !isBloqueada;
 }
 
-// NOVA FUNÇÃO: Verificar se uma vaga está bloqueada
+// FUNÇÃO CORRIGIDA: Verificar se uma vaga está bloqueada
 function isVagaBloqueada(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return false;
     }
     const nome = nomePaciente.trim().toLowerCase();
+    
+    // CORREÇÃO: Excluir casos onde há "possui paciente agendado"
+    // Estas devem ser tratadas como pacientes agendados normais
+    if (nome.includes('possui paciente agendado')) {
+        return false;
+    }
+    
     // Vaga bloqueada: contém "vaga bloqueada" no texto
     return nome.includes('vaga bloqueada');
 }
@@ -259,7 +272,7 @@ function loadSampleData() {
             perfilPacienteExame: 'Exame de sangue',
             laboratorioColeta: 'Eldorado' 
         },
-        // EXEMPLO ADICIONAL: vaga bloqueada (conforme solicitado)
+        // EXEMPLO: vaga bloqueada simples
         { 
             unidadeSaude: 'Perobas',
             dataAgendamento: '15/12/2025',
@@ -270,6 +283,18 @@ function loadSampleData() {
             observacaoUnidadeSaude: '',
             perfilPacienteExame: '',
             laboratorioColeta: 'Parque São João'
+        },
+        // EXEMPLO: vaga bloqueada MAS com paciente agendado (deve contar como agendada)
+        { 
+            unidadeSaude: 'Agua Branca',
+            dataAgendamento: '16/12/2025',
+            horarioAgendamento: '8h10',
+            nomePaciente: 'VAGA BLOQUEADA/ POSSUI PACIENTE AGENDADO NA OUTRA PLANILHA',
+            telefone: '',
+            prontuarioVivver: '',
+            observacaoUnidadeSaude: '',
+            perfilPacienteExame: '',
+            laboratorioColeta: 'Agua Branca'
         }
     ];
     filteredData = [...allData];
@@ -1270,7 +1295,7 @@ function updateSummaryTableWithTotal(tableId, data) {
     return 0;
 }
 
-// FUNÇÃO CORRIGIDA: clearFilters agora chama applyFilters após limpar
+// FUNÇÃO CORRIGIDA: clearFilters agora limpa o filtro de data corretamente
 function clearFilters() {
     // Limpar Select2 (Unidade, Laboratório, Mês/Ano, Horário)
     $('.filter-select').val(null).trigger('change');
@@ -1278,8 +1303,12 @@ function clearFilters() {
     // Limpar campo de data
     document.getElementById('dataFilter').value = '';
     
-    // CORREÇÃO: Reaplicar filtros (que agora estão todos vazios)
-    applyFilters();
+    // CORREÇÃO: Resetar para todos os dados quando limpar filtros
+    filteredData = [...allData];
+    
+    // Atualizar dashboard e estatísticas
+    updateDashboard();
+    updateStats();
     
     // Atualizar as exibições dos filtros
     updateFilterDisplays();
