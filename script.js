@@ -56,25 +56,44 @@ function isPacienteAgendado(nomePaciente) {
         return true;
     }
     
-    // Verifica se NÃO é vaga livre e NÃO é vaga bloqueada
-    const isLivre = nome === '' || nome === 'preencher';
-    const isBloqueada = nome.includes('vaga bloqueada') && !nome.includes('possui paciente agendado');
-    return !isLivre && !isBloqueada;
+    // Verifica se NÃO é vaga livre
+    const isLivre = isVagaLivre(nomePaciente);
+    return !isLivre && nome !== '';
 }
 
-// FUNÇÃO ATUALIZADA: Verificar se uma vaga está livre
+// FUNÇÃO CORRIGIDA: Verificar se uma vaga está livre (INCLUI VAGAS BLOQUEADAS E URGÊNCIAS)
 function isVagaLivre(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return true; // Vazio = vaga livre
     }
     const nome = nomePaciente.trim().toLowerCase();
-    // Vaga livre: vazio ou "preencher" E NÃO é bloqueada
-    const isLivre = nome === '' || nome === 'preencher';
-    const isBloqueada = nome.includes('vaga bloqueada');
-    return isLivre && !isBloqueada;
+    
+    // Vazio ou "preencher" = vaga livre
+    if (nome === '' || nome === 'preencher') {
+        return true;
+    }
+    
+    // CORREÇÃO PRINCIPAL: Vagas bloqueadas SEM paciente agendado são consideradas LIVRES
+    if (nome.includes('vaga bloqueada') && !nome.includes('possui paciente agendado')) {
+        // Verifica se é especificamente "VAGA BLOQUEADA/ ABERTURA NO SISTEMA VIVVER"
+        if (nome.includes('abertura no sistema vivver') || nome.includes('abertura sistema vivver')) {
+            return true;
+        }
+    }
+    
+    // NOVO: Vagas de URGÊNCIA também são consideradas LIVRES
+    if (nome.includes('urgencia') || nome.includes('urgência')) {
+        // Verifica se contém os tipos de urgência mencionados
+        if (nome.includes('urina') || nome.includes('gran') || nome.includes('rni') || 
+            nome.includes('gestante') || nome.includes('sifilis') || nome.includes('sífilis')) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
-// FUNÇÃO CORRIGIDA: Verificar se uma vaga está bloqueada
+// FUNÇÃO CORRIGIDA: Verificar se uma vaga está bloqueada (apenas as que NÃO são disponíveis)
 function isVagaBloqueada(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return false;
@@ -82,13 +101,26 @@ function isVagaBloqueada(nomePaciente) {
     const nome = nomePaciente.trim().toLowerCase();
     
     // CORREÇÃO: Excluir casos onde há "possui paciente agendado"
-    // Estas devem ser tratadas como pacientes agendados normais
     if (nome.includes('possui paciente agendado')) {
         return false;
     }
     
-    // Vaga bloqueada: contém "vaga bloqueada" no texto
-    return nome.includes('vaga bloqueada');
+    // CORREÇÃO: Excluir vagas bloqueadas que são consideradas disponíveis
+    if (nome.includes('vaga bloqueada')) {
+        // Se for "ABERTURA NO SISTEMA VIVVER", NÃO é bloqueada (é livre)
+        if (nome.includes('abertura no sistema vivver') || nome.includes('abertura sistema vivver')) {
+            return false;
+        }
+        // Outras vagas bloqueadas SIM são bloqueadas
+        return true;
+    }
+    
+    // CORREÇÃO: Urgências NÃO são bloqueadas (são livres)
+    if (nome.includes('urgencia') || nome.includes('urgência')) {
+        return false;
+    }
+    
+    return false;
 }
 
 // Função para atualizar a página
@@ -272,7 +304,7 @@ function loadSampleData() {
             perfilPacienteExame: 'Exame de sangue',
             laboratorioColeta: 'Eldorado' 
         },
-        // EXEMPLO: vaga bloqueada simples
+        // EXEMPLO: vaga bloqueada MAS disponível (abertura no sistema)
         { 
             unidadeSaude: 'Perobas',
             dataAgendamento: '15/12/2025',
@@ -284,17 +316,29 @@ function loadSampleData() {
             perfilPacienteExame: '',
             laboratorioColeta: 'Parque São João'
         },
-        // EXEMPLO: vaga bloqueada MAS com paciente agendado (deve contar como agendada)
+        // EXEMPLO: vaga de urgência (disponível)
         { 
             unidadeSaude: 'Agua Branca',
             dataAgendamento: '16/12/2025',
+            horarioAgendamento: '8h10',
+            nomePaciente: 'URGENCIA URINA/GRAN, RNI, GESTANTE E SIFILIS',
+            telefone: '',
+            prontuarioVivver: '',
+            observacaoUnidadeSaude: '',
+            perfilPacienteExame: '',
+            laboratorioColeta: 'Agua Branca'
+        },
+        // EXEMPLO: vaga bloqueada MAS com paciente agendado (NÃO disponível)
+        { 
+            unidadeSaude: 'Csu Eldorado',
+            dataAgendamento: '17/12/2025',
             horarioAgendamento: '8h10',
             nomePaciente: 'VAGA BLOQUEADA/ POSSUI PACIENTE AGENDADO NA OUTRA PLANILHA',
             telefone: '',
             prontuarioVivver: '',
             observacaoUnidadeSaude: '',
             perfilPacienteExame: '',
-            laboratorioColeta: 'Agua Branca'
+            laboratorioColeta: 'Eldorado'
         }
     ];
     filteredData = [...allData];
@@ -640,41 +684,38 @@ function updateCharts() {
     updateChartVagasConcedidasTempo();
 }
 
-// FUNÇÃO CORRIGIDA: Calcular dias desde a última data de agendamento por unidade
+// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosUnidade - usando função central para verificar coluna F
 function updateChartProximosAgendamentosUnidade() {
-    const diasParaProximoPorUnidade = {};
+    const proximosAgendamentosPorUnidade = {};
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
-    // Para cada unidade, encontrar a ÚLTIMA data de agendamento com paciente (excluindo bloqueadas)
+    // Para cada unidade, encontrar o próximo agendamento disponível (vaga livre)
     UNIDADES_SAUDE.forEach(unidade => {
-        // Filtrar agendamentos da unidade que têm paciente e NÃO são vagas bloqueadas
-        const agendamentosUnidade = datasetBase.filter(item => 
-            item.unidadeSaude === unidade && 
-            isPacienteAgendado(item.nomePaciente) &&
-            !isVagaBloqueada(item.nomePaciente)
+        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
+        const vagasLivresUnidade = datasetBase.filter(item => 
+            item.unidadeSaude === unidade && isVagaLivre(item.nomePaciente)
         );
         
-        if (agendamentosUnidade.length > 0) {
-            // Encontrar a data MAIS RECENTE (última data de agendamento)
-            const datasOrdenadas = agendamentosUnidade
+        if (vagasLivresUnidade.length > 0) {
+            // Encontrar a data mais próxima no futuro
+            const datasOrdenadas = vagasLivresUnidade
                 .map(item => parseDate(item.dataAgendamento))
-                .filter(date => date !== null)
-                .sort((a, b) => b - a); // Ordem decrescente (mais recente primeiro)
+                .filter(date => date && date >= hoje)
+                .sort((a, b) => a - b);
             
             if (datasOrdenadas.length > 0) {
-                const ultimaData = datasOrdenadas[0];
-                // Calcular dias desde a última data até hoje
-                const diasDesdeUltimo = Math.ceil((hoje - ultimaData) / (1000 * 60 * 60 * 24));
-                diasParaProximoPorUnidade[unidade] = Math.abs(diasDesdeUltimo);
+                const proximaData = datasOrdenadas[0];
+                const diasAteProximoAgendamento = Math.ceil((proximaData - hoje) / (1000 * 60 * 60 * 24));
+                proximosAgendamentosPorUnidade[unidade] = diasAteProximoAgendamento;
             }
         }
     });
 
-    const dadosOrdenados = Object.entries(diasParaProximoPorUnidade)
-        .sort((a, b) => b[1] - a[1]) // Ordem decrescente (unidades com mais dias sem agendamento primeiro)
+    const dadosOrdenados = Object.entries(proximosAgendamentosPorUnidade)
+        .sort((a, b) => a[1] - b[1])
         .slice(0, 10);
 
     const ctx = document.getElementById('chartUltimaDataUnidade').getContext('2d');
@@ -685,7 +726,7 @@ function updateChartProximosAgendamentosUnidade() {
         data: {
             labels: dadosOrdenados.map(item => item[0]),
             datasets: [{
-                label: 'Dias desde o último agendamento',
+                label: 'Dias até próximo agendamento',
                 data: dadosOrdenados.map(item => item[1]),
                 backgroundColor: '#dc2626',
                 borderColor: '#b91c1c',
@@ -711,7 +752,7 @@ function updateChartProximosAgendamentosUnidade() {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Dias desde o último agendamento'
+                        text: 'Dias até próximo agendamento'
                     }
                 },
                 y: { 
@@ -726,41 +767,38 @@ function updateChartProximosAgendamentosUnidade() {
     });
 }
 
-// FUNÇÃO CORRIGIDA: Calcular dias desde a última data de agendamento por laboratório
+// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosLaboratorio - usando função central para verificar coluna F
 function updateChartProximosAgendamentosLaboratorio() {
-    const diasParaProximoPorLab = {};
+    const proximosAgendamentosPorLab = {};
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
-    // Para cada laboratório, encontrar a ÚLTIMA data de agendamento com paciente (excluindo bloqueadas)
+    // Para cada laboratório, encontrar o próximo agendamento disponível (vaga livre)
     LABORATORIOS_COLETA.forEach(lab => {
-        // Filtrar agendamentos do laboratório que têm paciente e NÃO são vagas bloqueadas
-        const agendamentosLab = datasetBase.filter(item => 
-            item.laboratorioColeta === lab && 
-            isPacienteAgendado(item.nomePaciente) &&
-            !isVagaBloqueada(item.nomePaciente)
+        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
+        const vagasLivresLab = datasetBase.filter(item => 
+            item.laboratorioColeta === lab && isVagaLivre(item.nomePaciente)
         );
         
-        if (agendamentosLab.length > 0) {
-            // Encontrar a data MAIS RECENTE (última data de agendamento)
-            const datasOrdenadas = agendamentosLab
+        if (vagasLivresLab.length > 0) {
+            // Encontrar a data mais próxima no futuro
+            const datasOrdenadas = vagasLivresLab
                 .map(item => parseDate(item.dataAgendamento))
-                .filter(date => date !== null)
-                .sort((a, b) => b - a); // Ordem decrescente (mais recente primeiro)
+                .filter(date => date && date >= hoje)
+                .sort((a, b) => a - b);
             
             if (datasOrdenadas.length > 0) {
-                const ultimaData = datasOrdenadas[0];
-                // Calcular dias desde a última data até hoje
-                const diasDesdeUltimo = Math.ceil((hoje - ultimaData) / (1000 * 60 * 60 * 24));
-                diasParaProximoPorLab[lab] = Math.abs(diasDesdeUltimo);
+                const proximaData = datasOrdenadas[0];
+                const diasAteProximoAgendamento = Math.ceil((proximaData - hoje) / (1000 * 60 * 60 * 24));
+                proximosAgendamentosPorLab[lab] = diasAteProximoAgendamento;
             }
         }
     });
 
-    const dadosOrdenados = Object.entries(diasParaProximoPorLab)
-        .sort((a, b) => b[1] - a[1]); // Ordem decrescente (labs com mais dias sem agendamento primeiro)
+    const dadosOrdenados = Object.entries(proximosAgendamentosPorLab)
+        .sort((a, b) => a[1] - b[1]);
 
     const ctx = document.getElementById('chartUltimaDataLaboratorio').getContext('2d');
     if (charts.ultimaDataLaboratorio) charts.ultimaDataLaboratorio.destroy();
@@ -770,7 +808,7 @@ function updateChartProximosAgendamentosLaboratorio() {
         data: {
             labels: dadosOrdenados.map(item => item[0]),
             datasets: [{
-                label: 'Dias desde o último agendamento',
+                label: 'Dias até próximo agendamento',
                 data: dadosOrdenados.map(item => item[1]),
                 backgroundColor: '#ea580c',
                 borderColor: '#f97316',
@@ -796,7 +834,7 @@ function updateChartProximosAgendamentosLaboratorio() {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Dias desde o último agendamento'
+                        text: 'Dias até próximo agendamento'
                     }
                 },
                 y: { 
