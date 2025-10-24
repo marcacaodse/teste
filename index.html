@@ -110,9 +110,9 @@
         </div>
     </div>
 
-    <!-- Estatísticas de Vagas -->
+    <!-- Estatísticas de Vagas - ATUALIZADO PARA 5 CARDS -->
     <div class="container mx-auto px-6 py-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
             <!-- Total de Vagas Por período -->
             <div class="stats-card">
                 <div class="flex items-center">
@@ -148,6 +148,19 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Vagas Livres por Período</p>
                         <p class="text-3xl font-bold text-gray-900" id="vagasLivres">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOVO CARD: Vagas Bloqueadas por Período -->
+            <div class="stats-card">
+                <div class="flex items-center">
+                    <div class="stats-icon bg-yellow-500">
+                        <i class="fas fa-ban text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Vagas Bloqueadas por Período</p>
+                        <p class="text-3xl font-bold text-gray-900" id="vagasBloqueadas">0</p>
                     </div>
                 </div>
             </div>
