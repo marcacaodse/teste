@@ -671,7 +671,7 @@ function updateCharts() {
     updateChartVagasConcedidasTempo();
 }
 
-// Gráfico: Próximos agendamentos por Unidade
+// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosUnidade - usando função central para verificar coluna F
 function updateChartProximosAgendamentosUnidade() {
     const proximosAgendamentosPorUnidade = {};
     const hoje = new Date();
@@ -679,12 +679,15 @@ function updateChartProximosAgendamentosUnidade() {
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
+    // Para cada unidade, encontrar o próximo agendamento disponível (vaga livre)
     UNIDADES_SAUDE.forEach(unidade => {
+        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
         const vagasLivresUnidade = datasetBase.filter(item => 
             item.unidadeSaude === unidade && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresUnidade.length > 0) {
+            // Encontrar a data mais próxima no futuro
             const datasOrdenadas = vagasLivresUnidade
                 .map(item => parseDate(item.dataAgendamento))
                 .filter(date => date && date >= hoje)
@@ -751,7 +754,7 @@ function updateChartProximosAgendamentosUnidade() {
     });
 }
 
-// Gráfico: Próximos agendamentos por Laboratório
+// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosLaboratorio - usando função central para verificar coluna F
 function updateChartProximosAgendamentosLaboratorio() {
     const proximosAgendamentosPorLab = {};
     const hoje = new Date();
@@ -759,12 +762,15 @@ function updateChartProximosAgendamentosLaboratorio() {
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
+    // Para cada laboratório, encontrar o próximo agendamento disponível (vaga livre)
     LABORATORIOS_COLETA.forEach(lab => {
+        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
         const vagasLivresLab = datasetBase.filter(item => 
             item.laboratorioColeta === lab && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresLab.length > 0) {
+            // Encontrar a data mais próxima no futuro
             const datasOrdenadas = vagasLivresLab
                 .map(item => parseDate(item.dataAgendamento))
                 .filter(date => date && date >= hoje)
