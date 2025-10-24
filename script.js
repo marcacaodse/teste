@@ -44,24 +44,25 @@ const CORES_VAGAS_LIVRES = [
 // FUNÇÕES DE VERIFICAÇÃO (CORRIGIDAS)
 // ================================
 
-// FUNÇÃO CORRIGIDA: Verificar se um paciente está agendado
+// FUNÇÃO: Verificar se um paciente está agendado
 function isPacienteAgendado(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return false;
     }
     const nome = nomePaciente.trim().toLowerCase();
     
-    // CORREÇÃO: Casos especiais que devem contar como agendados
+    // Casos especiais que devem contar como agendados
     if (nome.includes('possui paciente agendado')) {
         return true;
     }
     
-    // Verifica se NÃO é vaga livre
+    // Verifica se NÃO é vaga livre E NÃO é vaga bloqueada
     const isLivre = isVagaLivre(nomePaciente);
-    return !isLivre && nome !== '';
+    const isBloqueada = isVagaBloqueada(nomePaciente);
+    return !isLivre && !isBloqueada && nome !== '';
 }
 
-// FUNÇÃO CORRIGIDA: Verificar se uma vaga está livre (INCLUI VAGAS BLOQUEADAS E URGÊNCIAS)
+// FUNÇÃO CORRIGIDA: Verificar se uma vaga está livre
 function isVagaLivre(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return true; // Vazio = vaga livre
@@ -73,53 +74,39 @@ function isVagaLivre(nomePaciente) {
         return true;
     }
     
-    // CORREÇÃO PRINCIPAL: Vagas bloqueadas SEM paciente agendado são consideradas LIVRES
-    if (nome.includes('vaga bloqueada') && !nome.includes('possui paciente agendado')) {
-        // Verifica se é especificamente "VAGA BLOQUEADA/ ABERTURA NO SISTEMA VIVVER"
-        if (nome.includes('abertura no sistema vivver') || nome.includes('abertura sistema vivver')) {
-            return true;
-        }
+    // Se tem paciente agendado, NÃO é livre
+    if (nome.includes('possui paciente agendado')) {
+        return false;
     }
     
-    // NOVO: Vagas de URGÊNCIA também são consideradas LIVRES
+    // URGÊNCIAS são consideradas LIVRES
     if (nome.includes('urgencia') || nome.includes('urgência')) {
-        // Verifica se contém os tipos de urgência mencionados
         if (nome.includes('urina') || nome.includes('gran') || nome.includes('rni') || 
             nome.includes('gestante') || nome.includes('sifilis') || nome.includes('sífilis')) {
             return true;
         }
     }
     
+    // Se chegou aqui e não é vaga bloqueada, pode ser livre ou agendada
+    // Retorna false para deixar a lógica decidir se é agendada
     return false;
 }
 
-// FUNÇÃO CORRIGIDA: Verificar se uma vaga está bloqueada (apenas as que NÃO são disponíveis)
+// FUNÇÃO CORRIGIDA: Verificar se uma vaga está bloqueada
+// APENAS "VAGA BLOQUEADA/ ABERTURA NO SISTEMA VIVVER" deve ser contada
 function isVagaBloqueada(nomePaciente) {
     if (!nomePaciente || typeof nomePaciente !== 'string') {
         return false;
     }
     const nome = nomePaciente.trim().toLowerCase();
     
-    // CORREÇÃO: Excluir casos onde há "possui paciente agendado"
-    if (nome.includes('possui paciente agendado')) {
-        return false;
-    }
-    
-    // CORREÇÃO: Excluir vagas bloqueadas que são consideradas disponíveis
-    if (nome.includes('vaga bloqueada')) {
-        // Se for "ABERTURA NO SISTEMA VIVVER", NÃO é bloqueada (é livre)
-        if (nome.includes('abertura no sistema vivver') || nome.includes('abertura sistema vivver')) {
-            return false;
-        }
-        // Outras vagas bloqueadas SIM são bloqueadas
+    // CORREÇÃO PRINCIPAL: APENAS esta nomenclatura específica é vaga bloqueada
+    if (nome.includes('vaga bloqueada') && 
+        (nome.includes('abertura no sistema vivver') || nome.includes('abertura sistema vivver'))) {
         return true;
     }
     
-    // CORREÇÃO: Urgências NÃO são bloqueadas (são livres)
-    if (nome.includes('urgencia') || nome.includes('urgência')) {
-        return false;
-    }
-    
+    // Qualquer outro caso NÃO é vaga bloqueada
     return false;
 }
 
@@ -162,7 +149,7 @@ async function loadData() {
                         laboratorioColeta: '' // Será definido abaixo
                     };
 
-                    // CORREÇÃO: Definir laboratório de coleta baseado na unidade de saúde
+                    // Definir laboratório de coleta baseado na unidade de saúde
                     if (row.unidadeSaude && LABORATORIO_POR_UNIDADE[row.unidadeSaude]) {
                         row.laboratorioColeta = LABORATORIO_POR_UNIDADE[row.unidadeSaude];
                     } else {
@@ -304,7 +291,7 @@ function loadSampleData() {
             perfilPacienteExame: 'Exame de sangue',
             laboratorioColeta: 'Eldorado' 
         },
-        // EXEMPLO: vaga bloqueada MAS disponível (abertura no sistema)
+        // EXEMPLO: vaga bloqueada (DEVE SER CONTADA)
         { 
             unidadeSaude: 'Perobas',
             dataAgendamento: '15/12/2025',
@@ -316,7 +303,7 @@ function loadSampleData() {
             perfilPacienteExame: '',
             laboratorioColeta: 'Parque São João'
         },
-        // EXEMPLO: vaga de urgência (disponível)
+        // EXEMPLO: vaga de urgência (NÃO deve ser contada como bloqueada - é livre)
         { 
             unidadeSaude: 'Agua Branca',
             dataAgendamento: '16/12/2025',
@@ -328,7 +315,7 @@ function loadSampleData() {
             perfilPacienteExame: '',
             laboratorioColeta: 'Agua Branca'
         },
-        // EXEMPLO: vaga bloqueada MAS com paciente agendado (NÃO disponível)
+        // EXEMPLO: vaga bloqueada MAS com paciente agendado (NÃO deve ser contada como bloqueada)
         { 
             unidadeSaude: 'Csu Eldorado',
             dataAgendamento: '17/12/2025',
@@ -424,7 +411,7 @@ function updateSelectOptions(selectId, options) {
     select.trigger('change');
 }
 
-// NOVA FUNÇÃO: Atualizar exibições dos filtros selecionados
+// Atualizar exibições dos filtros selecionados
 function updateFilterDisplays() {
     // Unidades de Saúde
     const unidadeSelecionadas = $('#unidadeSaudeFilter').val() || [];
@@ -475,7 +462,7 @@ function updateFilterDisplay(containerId, selectedItems, labelText) {
     `;
 }
 
-// FUNÇÃO CORRIGIDA: applyFilters com comparação de data corrigida
+// Aplicar filtros
 function applyFilters() {
     const unidadeSaudeFilter = $('#unidadeSaudeFilter').val() || [];
     const laboratorioColetaFilter = $('#laboratorioColetaFilter').val() || [];
@@ -486,10 +473,9 @@ function applyFilters() {
     // Converter a data do filtro (formato ISO YYYY-MM-DD) para objeto Date
     let filterDate = null;
     if (dataFilterValue) {
-        filterDate = new Date(dataFilterValue + 'T00:00:00'); // Adiciona horário para evitar problemas de timezone
+        filterDate = new Date(dataFilterValue + 'T00:00:00');
     }
 
-    // FILTRAR POR DADOS REAIS (allData) APLICANDO TODOS OS FILTROS
     filteredData = allData.filter(item => {
         let inUnidade = unidadeSaudeFilter.length === 0 || unidadeSaudeFilter.includes(item.unidadeSaude);
         let inLaboratorio = laboratorioColetaFilter.length === 0 || laboratorioColetaFilter.includes(item.laboratorioColeta);
@@ -506,12 +492,10 @@ function applyFilters() {
             }
         }
         
-        // CORREÇÃO: Comparação de data corrigida
         let inDate = true;
         if (filterDate) {
             const itemDate = item.dataAgendamento ? parseDate(item.dataAgendamento) : null;
             if (itemDate) {
-                // Normalizar ambas as datas para meia-noite para comparação correta
                 const itemDateNormalized = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
                 const filterDateNormalized = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
                 inDate = itemDateNormalized.getTime() === filterDateNormalized.getTime();
@@ -537,10 +521,9 @@ function parseDate(dateStr) {
     return null;
 }
 
-// FUNÇÃO ATUALIZADA: updateStats - usando função central para verificar coluna F
+// Atualizar estatísticas principais
 function updateStats() {
     const totalVagas = filteredData.length;
-    // CORREÇÃO: Usar função central para verificar pacientes agendados baseado na coluna F
     const vagasOcupadas = filteredData.filter(item => isPacienteAgendado(item.nomePaciente)).length;
     const vagasBloqueadas = filteredData.filter(item => isVagaBloqueada(item.nomePaciente)).length;
     const vagasLivres = totalVagas - vagasOcupadas - vagasBloqueadas;
@@ -549,7 +532,6 @@ function updateStats() {
     document.getElementById('totalVagas').textContent = totalVagas.toLocaleString();
     document.getElementById('vagasOcupadas').textContent = vagasOcupadas.toLocaleString();
     document.getElementById('vagasLivres').textContent = vagasLivres.toLocaleString();
-    // Adiciona exibição de vagas bloqueadas se existir o elemento
     if (document.getElementById('vagasBloqueadas')) {
         document.getElementById('vagasBloqueadas').textContent = vagasBloqueadas.toLocaleString();
     }
@@ -567,23 +549,19 @@ function updateDashboard() {
     updateSummaryTables();
 }
 
-// FUNÇÃO MODIFICADA: updateVagasUnidadeCards - Cards com fundo AZUL CLARINHO
+// Cards com fundo AZUL CLARINHO - Vagas Agendadas
 function updateVagasUnidadeCards() {
     const container = document.getElementById('vagasUnidadeContainer');
     if (!container) return;
 
-    // Determinar qual dataset usar baseado nos filtros ativos
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // Calcular total de vagas AGENDADAS (usando função central baseada na coluna F) por unidade
     const vagasPorUnidade = {};
     
-    // Inicializar todas as unidades com 0
     UNIDADES_SAUDE.forEach(unidade => {
         vagasPorUnidade[unidade] = 0;
     });
     
-    // CORREÇÃO: Contar apenas as vagas AGENDADAS usando função central
     datasetBase.forEach(item => {
         if (item.unidadeSaude && UNIDADES_SAUDE.includes(item.unidadeSaude)) {
             if (isPacienteAgendado(item.nomePaciente)) {
@@ -592,7 +570,6 @@ function updateVagasUnidadeCards() {
         }
     });
 
-    // Gerar HTML dos cards com FUNDO AZUL CLARINHO
     const cardsHTML = UNIDADES_SAUDE.map((unidade, index) => {
         const total = vagasPorUnidade[unidade] || 0;
         
@@ -610,23 +587,19 @@ function updateVagasUnidadeCards() {
     container.innerHTML = cardsHTML;
 }
 
-// FUNÇÃO MODIFICADA: updateVagasLivresUnidadeCards - Cards agora com fundo VERDE CLARINHO
+// Cards com fundo VERDE CLARINHO - Vagas Livres
 function updateVagasLivresUnidadeCards() {
     const container = document.getElementById('vagasLivresUnidadeContainer');
     if (!container) return;
 
-    // Determinar qual dataset usar baseado nos filtros ativos
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // Calcular total de vagas LIVRES (usando função central baseada na coluna F) por unidade
     const vagasLivresPorUnidade = {};
     
-    // Inicializar todas as unidades com 0
     UNIDADES_SAUDE.forEach(unidade => {
         vagasLivresPorUnidade[unidade] = 0;
     });
     
-    // Contar apenas as vagas LIVRES usando função central
     datasetBase.forEach(item => {
         if (item.unidadeSaude && UNIDADES_SAUDE.includes(item.unidadeSaude)) {
             if (isVagaLivre(item.nomePaciente)) {
@@ -635,7 +608,6 @@ function updateVagasLivresUnidadeCards() {
         }
     });
 
-    // MODIFICADO: classe bg-light-green-card e cor verde
     const cardsHTML = UNIDADES_SAUDE.map((unidade, index) => {
         const total = vagasLivresPorUnidade[unidade] || 0;
         
@@ -653,27 +625,42 @@ function updateVagasLivresUnidadeCards() {
     container.innerHTML = cardsHTML;
 }
 
-// NOVA FUNÇÃO: Atualizar cards de vagas bloqueadas por unidade
+// FUNÇÃO CORRIGIDA: Cards de Vagas Bloqueadas por Unidade
 function updateVagasBloqueadasUnidadeCards() {
     const container = document.getElementById('vagasBloqueadasUnidadeContainer');
     if (!container) return;
-    container.innerHTML = '';
+
+    const datasetBase = hasActiveFilters() ? filteredData : allData;
+    
+    const vagasBloqueadasPorUnidade = {};
+    
     UNIDADES_SAUDE.forEach(unidade => {
-        const total = filteredData.filter(item => item.unidadeSaude === unidade && isVagaBloqueada(item.nomePaciente)).length;
-        const card = document.createElement('div');
-        card.className = `
-            bg-red-100 rounded-lg shadow-md p-6 border-l-4 border-l-red-300
-            hover:shadow-lg transition-shadow duration-200
-        `;
-        card.innerHTML = `
-            <div class="text-center">
-                <p class="text-lg font-bold text-gray-800 mb-3">${unidade}</p>
-                <p class="text-3xl font-bold text-red-600 mb-1">${total.toLocaleString()}</p>
-                <p class="text-sm text-gray-600">vagas bloqueadas</p>
+        vagasBloqueadasPorUnidade[unidade] = 0;
+    });
+    
+    datasetBase.forEach(item => {
+        if (item.unidadeSaude && UNIDADES_SAUDE.includes(item.unidadeSaude)) {
+            if (isVagaBloqueada(item.nomePaciente)) {
+                vagasBloqueadasPorUnidade[item.unidadeSaude]++;
+            }
+        }
+    });
+
+    const cardsHTML = UNIDADES_SAUDE.map((unidade) => {
+        const total = vagasBloqueadasPorUnidade[unidade] || 0;
+        
+        return `
+            <div class="bg-red-100 rounded-lg shadow-md p-6 border-l-4 border-l-red-300 hover:shadow-lg transition-shadow duration-200">
+                <div class="text-center">
+                    <p class="text-lg font-bold text-gray-800 mb-3">${unidade}</p>
+                    <p class="text-3xl font-bold text-red-600 mb-1">${total.toLocaleString()}</p>
+                    <p class="text-sm text-gray-600">vagas bloqueadas</p>
+                </div>
             </div>
         `;
-        container.appendChild(card);
-    });
+    }).join('');
+
+    container.innerHTML = cardsHTML;
 }
 
 function updateCharts() {
@@ -684,7 +671,7 @@ function updateCharts() {
     updateChartVagasConcedidasTempo();
 }
 
-// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosUnidade - usando função central para verificar coluna F
+// Gráfico: Próximos agendamentos por Unidade
 function updateChartProximosAgendamentosUnidade() {
     const proximosAgendamentosPorUnidade = {};
     const hoje = new Date();
@@ -692,15 +679,12 @@ function updateChartProximosAgendamentosUnidade() {
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
-    // Para cada unidade, encontrar o próximo agendamento disponível (vaga livre)
     UNIDADES_SAUDE.forEach(unidade => {
-        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
         const vagasLivresUnidade = datasetBase.filter(item => 
             item.unidadeSaude === unidade && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresUnidade.length > 0) {
-            // Encontrar a data mais próxima no futuro
             const datasOrdenadas = vagasLivresUnidade
                 .map(item => parseDate(item.dataAgendamento))
                 .filter(date => date && date >= hoje)
@@ -767,7 +751,7 @@ function updateChartProximosAgendamentosUnidade() {
     });
 }
 
-// FUNÇÃO ATUALIZADA: updateChartProximosAgendamentosLaboratorio - usando função central para verificar coluna F
+// Gráfico: Próximos agendamentos por Laboratório
 function updateChartProximosAgendamentosLaboratorio() {
     const proximosAgendamentosPorLab = {};
     const hoje = new Date();
@@ -775,15 +759,12 @@ function updateChartProximosAgendamentosLaboratorio() {
     
     const datasetBase = filteredData.length > 0 ? filteredData : allData;
     
-    // Para cada laboratório, encontrar o próximo agendamento disponível (vaga livre)
     LABORATORIOS_COLETA.forEach(lab => {
-        // CORREÇÃO: Usar função central para verificar vagas livres baseado na coluna F
         const vagasLivresLab = datasetBase.filter(item => 
             item.laboratorioColeta === lab && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresLab.length > 0) {
-            // Encontrar a data mais próxima no futuro
             const datasOrdenadas = vagasLivresLab
                 .map(item => parseDate(item.dataAgendamento))
                 .filter(date => date && date >= hoje)
@@ -849,19 +830,16 @@ function updateChartProximosAgendamentosLaboratorio() {
     });
 }
 
-// NOVA FUNÇÃO: Gráfico de Pacientes Agendados por Laboratório (Barras Verticais Verde Escuro)
+// Gráfico: Pacientes Agendados por Laboratório
 function updateChartPacientesAgendadosLab() {
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // Calcular total de pacientes AGENDADOS por laboratório usando função central
     const pacientesPorLab = {};
     
-    // Inicializar todos os laboratórios com 0
     LABORATORIOS_COLETA.forEach(lab => {
         pacientesPorLab[lab] = 0;
     });
     
-    // Contar apenas pacientes agendados (baseado na coluna F)
     datasetBase.forEach(item => {
         if (item.laboratorioColeta && LABORATORIOS_COLETA.includes(item.laboratorioColeta)) {
             if (isPacienteAgendado(item.nomePaciente)) {
@@ -871,7 +849,7 @@ function updateChartPacientesAgendadosLab() {
     });
 
     const dadosOrdenados = Object.entries(pacientesPorLab)
-        .sort((a, b) => b[1] - a[1]); // Ordem decrescente
+        .sort((a, b) => b[1] - a[1]);
 
     const ctx = document.getElementById('chartPacientesAgendadosLab').getContext('2d');
     if (charts.pacientesAgendadosLab) charts.pacientesAgendadosLab.destroy();
@@ -883,7 +861,7 @@ function updateChartPacientesAgendadosLab() {
             datasets: [{
                 label: 'Pacientes Agendados',
                 data: dadosOrdenados.map(item => item[1]),
-                backgroundColor: '#1f5f3f', // Verde escuro
+                backgroundColor: '#1f5f3f',
                 borderColor: '#166f36',
                 borderWidth: 2
             }]
@@ -894,7 +872,7 @@ function updateChartPacientesAgendadosLab() {
             plugins: {
                 legend: { display: false },
                 datalabels: {
-                    color: '#ffffff', // Branco
+                    color: '#ffffff',
                     font: { weight: 'bold', size: 14 },
                     anchor: 'center',
                     align: 'center',
@@ -921,19 +899,16 @@ function updateChartPacientesAgendadosLab() {
     });
 }
 
-// NOVA FUNÇÃO: Gráfico de Vagas Livres por Laboratório (Barras Verticais Azul Escuro)
+// Gráfico: Vagas Livres por Laboratório
 function updateChartVagasLivresLab() {
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // Calcular total de vagas LIVRES por laboratório usando função central
     const vagasLivresPorLab = {};
     
-    // Inicializar todos os laboratórios com 0
     LABORATORIOS_COLETA.forEach(lab => {
         vagasLivresPorLab[lab] = 0;
     });
     
-    // Contar apenas vagas livres (baseado na coluna F)
     datasetBase.forEach(item => {
         if (item.laboratorioColeta && LABORATORIOS_COLETA.includes(item.laboratorioColeta)) {
             if (isVagaLivre(item.nomePaciente)) {
@@ -943,7 +918,7 @@ function updateChartVagasLivresLab() {
     });
 
     const dadosOrdenados = Object.entries(vagasLivresPorLab)
-        .sort((a, b) => b[1] - a[1]); // Ordem decrescente
+        .sort((a, b) => b[1] - a[1]);
 
     const ctx = document.getElementById('chartVagasLivresLab').getContext('2d');
     if (charts.vagasLivresLab) charts.vagasLivresLab.destroy();
@@ -955,7 +930,7 @@ function updateChartVagasLivresLab() {
             datasets: [{
                 label: 'Vagas Livres',
                 data: dadosOrdenados.map(item => item[1]),
-                backgroundColor: '#1e3a8a', // Azul escuro
+                backgroundColor: '#1e3a8a',
                 borderColor: '#1e40af',
                 borderWidth: 2
             }]
@@ -966,7 +941,7 @@ function updateChartVagasLivresLab() {
             plugins: {
                 legend: { display: false },
                 datalabels: {
-                    color: '#ffffff', // Branco
+                    color: '#ffffff',
                     font: { weight: 'bold', size: 14 },
                     anchor: 'center',
                     align: 'center',
@@ -993,11 +968,10 @@ function updateChartVagasLivresLab() {
     });
 }
 
-// FUNÇÃO CORRIGIDA: Gráfico de Linha do Tempo com TOTAL DE VAGAS por Mês (agendadas + livres)
+// Gráfico: Linha do Tempo com TOTAL DE VAGAS por Mês
 function updateChartVagasConcedidasTempo() {
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // CORREÇÃO: Calcular TOTAL DE VAGAS por mês (independente se agendadas ou livres)
     const vagasPorMes = {};
     
     datasetBase.forEach(item => {
@@ -1005,13 +979,11 @@ function updateChartVagasConcedidasTempo() {
             const date = parseDate(item.dataAgendamento);
             if (date) {
                 const monthYear = `${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-                // CORREÇÃO: Contar TODAS as vagas (agendadas + livres)
                 vagasPorMes[monthYear] = (vagasPorMes[monthYear] || 0) + 1;
             }
         }
     });
 
-    // Ordenar os meses cronologicamente
     const mesesOrdenados = Object.keys(vagasPorMes).sort((a, b) => {
         const [mesA, anoA] = a.split('/').map(Number);
         const [mesB, anoB] = b.split('/').map(Number);
@@ -1020,7 +992,6 @@ function updateChartVagasConcedidasTempo() {
         return mesA - mesB;
     });
 
-    // Preparar dados para o gráfico
     const labels = mesesOrdenados.map(mesAno => {
         const [mes, ano] = mesAno.split('/');
         const nomes = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
@@ -1040,11 +1011,11 @@ function updateChartVagasConcedidasTempo() {
             datasets: [{
                 label: 'Total de Vagas Disponibilizadas',
                 data: dados,
-                borderColor: '#f97316', // Laranja (cor similar à imagem)
-                backgroundColor: 'rgba(249, 115, 22, 0.2)', // Laranja com transparência
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.2)',
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4, // Suavizar a linha (similar à imagem)
+                tension: 0.4,
                 pointBackgroundColor: '#f97316',
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
@@ -1110,16 +1081,15 @@ function updateChartVagasConcedidasTempo() {
             },
             elements: {
                 line: {
-                    tension: 0.4 // Linha suave como na imagem
+                    tension: 0.4
                 }
             }
         }
     });
 }
 
-// TABELA CORRIGIDA: Removidas as colunas Nome do Paciente e Telefone
+// Tabela principal de agendamentos
 function updateTable() {
-    // Destruir a tabela anterior se existir
     if (dataTable) {
         dataTable.destroy();
         dataTable = null;
@@ -1131,10 +1101,8 @@ function updateTable() {
         return;
     }
     
-    // Limpar o conteúdo anterior
     tableBody.innerHTML = '';
     
-    // Inserir os dados filtrados (SEM as colunas Nome do Paciente e Telefone)
     tableBody.innerHTML = filteredData.map(item => `
         <tr>
             <td>${item.unidadeSaude || ''}</td>
@@ -1147,17 +1115,16 @@ function updateTable() {
         </tr>
     `).join('');
     
-    // Inicializar o DataTable
     dataTable = $('#agendamentosTable').DataTable({
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json'
         },
         pageLength: 15,
         responsive: true,
-        order: [[1, 'asc']], // Ordenar por data
+        order: [[1, 'asc']],
         columnDefs: [
             { 
-                targets: [0, 4, 5, 6], // Colunas que podem ter texto longo
+                targets: [0, 4, 5, 6],
                 render: function(data, type, row) {
                     if (type === 'display' && data && data.length > 30) {
                         return `<span title="${data}">${data.substr(0, 30)}...</span>`;
@@ -1169,12 +1136,11 @@ function updateTable() {
     });
 }
 
-// FUNÇÃO ATUALIZADA: updateSummaryTables - usando funções centrais para verificar coluna F
+// Tabelas de resumo
 function updateSummaryTables() {
-    // Determinar qual dataset usar baseado nos filtros ativos
     const datasetBase = hasActiveFilters() ? filteredData : allData;
     
-    // 1. Pacientes Agendados por Dia/Unidade (usando função central baseada na coluna F)
+    // 1. Pacientes Agendados por Dia/Unidade
     const pacientesDiaUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isPacienteAgendado(item.nomePaciente)) {
@@ -1185,7 +1151,7 @@ function updateSummaryTables() {
     const totalPacientesDiaUnidade = updateSummaryTableWithTotal('tablePacientesDiaUnidade', Object.entries(pacientesDiaUnidade).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalPacientesDiaUnidade').textContent = totalPacientesDiaUnidade;
 
-    // 2. Pacientes Agendados por Mês/Unidade (usando função central baseada na coluna F)
+    // 2. Pacientes Agendados por Mês/Unidade
     const pacientesMesUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isPacienteAgendado(item.nomePaciente)) {
@@ -1200,7 +1166,7 @@ function updateSummaryTables() {
     const totalPacientesMesUnidade = updateSummaryTableWithTotal('tablePacientesMesUnidade', Object.entries(pacientesMesUnidade).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalPacientesMesUnidade').textContent = totalPacientesMesUnidade;
 
-    // 3. Pacientes Agendados por Dia/Laboratório (usando função central baseada na coluna F)
+    // 3. Pacientes Agendados por Dia/Laboratório
     const pacientesDiaLab = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.laboratorioColeta && isPacienteAgendado(item.nomePaciente)) {
@@ -1211,7 +1177,7 @@ function updateSummaryTables() {
     const totalPacientesDiaLab = updateSummaryTableWithTotal('tablePacientesDiaLab', Object.entries(pacientesDiaLab).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalPacientesDiaLab').textContent = totalPacientesDiaLab;
 
-    // 4. Pacientes Agendados por Mês/Laboratório (usando função central baseada na coluna F)
+    // 4. Pacientes Agendados por Mês/Laboratório
     const pacientesMesLab = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.laboratorioColeta && isPacienteAgendado(item.nomePaciente)) {
@@ -1226,7 +1192,7 @@ function updateSummaryTables() {
     const totalPacientesMesLab = updateSummaryTableWithTotal('tablePacientesMesLab', Object.entries(pacientesMesLab).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalPacientesMesLab').textContent = totalPacientesMesLab;
 
-    // 5. Vagas Livres por Dia/Unidade (usando função central baseada na coluna F)
+    // 5. Vagas Livres por Dia/Unidade
     const vagasLivresDiaUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isVagaLivre(item.nomePaciente)) {
@@ -1237,7 +1203,7 @@ function updateSummaryTables() {
     const totalVagasLivresDiaUnidade = updateSummaryTableWithTotal('tableVagasLivresDiaUnidade', Object.entries(vagasLivresDiaUnidade).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalVagasLivresDiaUnidade').textContent = totalVagasLivresDiaUnidade;
 
-    // 6. Vagas Livres por Mês/Unidade (usando função central baseada na coluna F)
+    // 6. Vagas Livres por Mês/Unidade
     const vagasLivresMesUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isVagaLivre(item.nomePaciente)) {
@@ -1252,7 +1218,7 @@ function updateSummaryTables() {
     const totalVagasLivresMesUnidade = updateSummaryTableWithTotal('tableVagasLivresMesUnidade', Object.entries(vagasLivresMesUnidade).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalVagasLivresMesUnidade').textContent = totalVagasLivresMesUnidade;
 
-    // 7. Vagas Livres por Dia/Laboratório (usando função central baseada na coluna F)
+    // 7. Vagas Livres por Dia/Laboratório
     const vagasLivresDiaLab = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.laboratorioColeta && isVagaLivre(item.nomePaciente)) {
@@ -1263,7 +1229,7 @@ function updateSummaryTables() {
     const totalVagasLivresDiaLab = updateSummaryTableWithTotal('tableVagasLivresDiaLab', Object.entries(vagasLivresDiaLab).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalVagasLivresDiaLab').textContent = totalVagasLivresDiaLab;
 
-    // 8. Vagas Livres por Mês/Laboratório (usando função central baseada na coluna F)
+    // 8. Vagas Livres por Mês/Laboratório
     const vagasLivresMesLab = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.laboratorioColeta && isVagaLivre(item.nomePaciente)) {
@@ -1278,7 +1244,7 @@ function updateSummaryTables() {
     const totalVagasLivresMesLab = updateSummaryTableWithTotal('tableVagasLivresMesLab', Object.entries(vagasLivresMesLab).sort((a, b) => b[1] - a[1]));
     document.getElementById('totalVagasLivresMesLab').textContent = totalVagasLivresMesLab;
 
-    // 9. Vagas Bloqueadas por Dia/Unidade (usando função central baseada na coluna F)
+    // 9. Vagas Bloqueadas por Dia/Unidade
     const vagasBloqueadasDiaUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isVagaBloqueada(item.nomePaciente)) {
@@ -1291,7 +1257,7 @@ function updateSummaryTables() {
         document.getElementById('totalVagasBloqueadasDiaUnidade').textContent = totalVagasBloqueadasDiaUnidade;
     }
 
-    // 10. Vagas Bloqueadas por Mês/Unidade (usando função central baseada na coluna F)
+    // 10. Vagas Bloqueadas por Mês/Unidade
     const vagasBloqueadasMesUnidade = {};
     datasetBase.forEach(item => {
         if (item.dataAgendamento && item.unidadeSaude && isVagaBloqueada(item.nomePaciente)) {
@@ -1309,7 +1275,7 @@ function updateSummaryTables() {
     }
 }
 
-// Função auxiliar para verificar se há filtros ativos
+// Verificar se há filtros ativos
 function hasActiveFilters() {
     const unidadeSaudeFilter = $('#unidadeSaudeFilter').val() || [];
     const laboratorioColetaFilter = $('#laboratorioColetaFilter').val() || [];
@@ -1321,7 +1287,7 @@ function hasActiveFilters() {
            mesAnoFilter.length > 0 || dataFilter || horarioFilter.length > 0;
 }
 
-// FUNÇÃO NOVA: Atualizar tabela de resumo com total
+// Atualizar tabela de resumo com total
 function updateSummaryTableWithTotal(tableId, data) {
     const tableBody = document.querySelector(`#${tableId} tbody`);
     if (tableBody) {
@@ -1339,26 +1305,17 @@ function updateSummaryTableWithTotal(tableId, data) {
     return 0;
 }
 
-// FUNÇÃO CORRIGIDA: clearFilters agora limpa o filtro de data corretamente
+// Limpar todos os filtros
 function clearFilters() {
-    // Limpar Select2 (Unidade, Laboratório, Mês/Ano, Horário)
     $('.filter-select').val(null).trigger('change');
-    
-    // Limpar campo de data
     document.getElementById('dataFilter').value = '';
-    
-    // CORREÇÃO: Resetar para todos os dados quando limpar filtros
     filteredData = [...allData];
-    
-    // Atualizar dashboard e estatísticas
     updateDashboard();
     updateStats();
-    
-    // Atualizar as exibições dos filtros
     updateFilterDisplays();
 }
 
-// EXPORTAÇÃO CORRIGIDA: Sem nome do paciente e telefone
+// Exportar para Excel
 function exportToExcel() {
     const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
         'UNIDADE DE SAÚDE': item.unidadeSaude || '',
@@ -1377,9 +1334,7 @@ function exportToExcel() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Definir data mínima para o filtro de data como 01/11/2025
     document.getElementById('dataFilter').min = '2025-11-01';
-    
     loadData();
     setInterval(loadData, 600000); // Auto-atualização a cada 10 minutos
 });
