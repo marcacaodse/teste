@@ -431,7 +431,7 @@ function updateFilterDisplay(containerId, selectedItems, labelText) {
     `;
 }
 
-// FUNÇÃO CORRIGIDA: applyFilters com melhor tratamento de datas
+// FUNÇÃO CORRIGIDA: applyFilters com comparação de data corrigida
 function applyFilters() {
     const unidadeSaudeFilter = $('#unidadeSaudeFilter').val() || [];
     const laboratorioColetaFilter = $('#laboratorioColetaFilter').val() || [];
@@ -442,17 +442,8 @@ function applyFilters() {
     // Converter a data do filtro (formato ISO YYYY-MM-DD) para objeto Date
     let filterDate = null;
     if (dataFilterValue) {
-        filterDate = new Date(dataFilterValue + 'T00:00:00');
+        filterDate = new Date(dataFilterValue + 'T00:00:00'); // Adiciona horário para evitar problemas de timezone
     }
-
-    // Log para debug
-    console.log('Aplicando filtros:', {
-        unidades: unidadeSaudeFilter,
-        laboratorios: laboratorioColetaFilter,
-        mesAno: mesAnoFilter,
-        data: dataFilterValue,
-        horarios: horarioFilter
-    });
 
     // FILTRAR POR DADOS REAIS (allData) APLICANDO TODOS OS FILTROS
     filteredData = allData.filter(item => {
@@ -487,8 +478,6 @@ function applyFilters() {
 
         return inUnidade && inLaboratorio && inMesAno && inDate && inHorario;
     });
-
-    console.log('Registros após filtro:', filteredData.length);
 
     updateDashboard();
     updateStats();
@@ -651,32 +640,31 @@ function updateCharts() {
     updateChartVagasConcedidasTempo();
 }
 
-// FUNÇÃO CORRIGIDA: updateChartProximosAgendamentosUnidade - TODAS as 9 unidades
+// ================================
+// FUNÇÃO COMPLETAMENTE CORRIGIDA
+// ================================
 function updateChartProximosAgendamentosUnidade() {
     const proximosAgendamentosPorUnidade = {};
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
-    // CORREÇÃO: Usar allData se não houver filtros, senão filteredData
-    const datasetBase = hasActiveFilters() ? filteredData : allData;
-    
-    // INICIALIZAR TODAS AS 9 UNIDADES (garante que todas apareçam no gráfico)
-    UNIDADES_SAUDE.forEach(unidade => {
-        proximosAgendamentosPorUnidade[unidade] = null; // null = sem vagas disponíveis
-    });
+    // CORREÇÃO PRINCIPAL: Sempre usar allData (todos os dados), não filteredData
+    // Ignorar completamente os filtros de período para este gráfico
+    const datasetCompleto = allData;
     
     // Para cada unidade, encontrar o próximo agendamento disponível (vaga livre)
     UNIDADES_SAUDE.forEach(unidade => {
-        const vagasLivresUnidade = datasetBase.filter(item => 
+        // Buscar todas as vagas livres desta unidade em TODOS os dados
+        const vagasLivresUnidade = datasetCompleto.filter(item => 
             item.unidadeSaude === unidade && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresUnidade.length > 0) {
-            // Encontrar a data mais próxima no futuro
+            // Encontrar a data mais próxima no futuro (a partir de hoje)
             const datasOrdenadas = vagasLivresUnidade
                 .map(item => parseDate(item.dataAgendamento))
-                .filter(date => date && date >= hoje)
-                .sort((a, b) => a - b);
+                .filter(date => date && date >= hoje) // Apenas datas futuras
+                .sort((a, b) => a - b); // Ordenar cronologicamente
             
             if (datasOrdenadas.length > 0) {
                 const proximaData = datasOrdenadas[0];
@@ -686,16 +674,20 @@ function updateChartProximosAgendamentosUnidade() {
         }
     });
 
-    // CORREÇÃO: Ordenar mostrando primeiro as com dados, depois as sem dados
-    const dadosComVagas = Object.entries(proximosAgendamentosPorUnidade)
-        .filter(item => item[1] !== null)
-        .sort((a, b) => a[1] - b[1]);
-    
-    const dadosSemVagas = Object.entries(proximosAgendamentosPorUnidade)
-        .filter(item => item[1] === null)
-        .map(item => [item[0], 0]); // Colocar 0 para unidades sem vagas
+    // Preparar dados para o gráfico - SEMPRE mostrar todas as 9 unidades
+    const dadosParaGrafico = UNIDADES_SAUDE.map(unidade => {
+        return {
+            unidade: unidade,
+            dias: proximosAgendamentosPorUnidade[unidade] || null // null se não houver dados
+        };
+    });
 
-    const dadosFinais = [...dadosComVagas, ...dadosSemVagas];
+    // Ordenar por número de dias (nulls no final)
+    dadosParaGrafico.sort((a, b) => {
+        if (a.dias === null) return 1;
+        if (b.dias === null) return -1;
+        return a.dias - b.dias;
+    });
 
     const ctx = document.getElementById('chartUltimaDataUnidade').getContext('2d');
     if (charts.ultimaDataUnidade) charts.ultimaDataUnidade.destroy();
@@ -703,12 +695,12 @@ function updateChartProximosAgendamentosUnidade() {
     charts.ultimaDataUnidade = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: dadosFinais.map(item => item[0]),
+            labels: dadosParaGrafico.map(item => item.unidade),
             datasets: [{
                 label: 'Dias até próximo agendamento',
-                data: dadosFinais.map(item => item[1]),
-                backgroundColor: dadosFinais.map(item => item[1] === 0 ? '#9ca3af' : '#dc2626'), // Cinza para sem vagas
-                borderColor: dadosFinais.map(item => item[1] === 0 ? '#6b7280' : '#b91c1c'),
+                data: dadosParaGrafico.map(item => item.dias),
+                backgroundColor: dadosParaGrafico.map(item => item.dias === null ? '#94a3b8' : '#dc2626'),
+                borderColor: dadosParaGrafico.map(item => item.dias === null ? '#64748b' : '#b91c1c'),
                 borderWidth: 1
             }]
         },
@@ -723,7 +715,17 @@ function updateChartProximosAgendamentosUnidade() {
                     font: { weight: 'bold', size: 12 },
                     anchor: 'center',
                     align: 'center',
-                    formatter: (value) => value === 0 ? 'Sem vagas' : `${value} dias`
+                    formatter: (value) => value !== null ? `${value} dias` : 'Sem dados'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.parsed.x === null) {
+                                return 'Sem vagas livres disponíveis';
+                            }
+                            return `${context.parsed.x} dias até próximo agendamento`;
+                        }
+                    }
                 }
             },
             scales: {
@@ -731,11 +733,11 @@ function updateChartProximosAgendamentosUnidade() {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Dias até próximo agendamento'
-                    }
+                        text: 'Dias até próximo agendamento (a partir de hoje)'
+                    },
+                    beginAtZero: true
                 },
                 y: { 
-                    beginAtZero: true,
                     title: {
                         display: true,
                         text: 'Unidades de Saúde'
@@ -746,32 +748,31 @@ function updateChartProximosAgendamentosUnidade() {
     });
 }
 
-// FUNÇÃO CORRIGIDA: updateChartProximosAgendamentosLaboratorio - TODOS os 3 laboratórios
+// ================================
+// FUNÇÃO COMPLETAMENTE CORRIGIDA
+// ================================
 function updateChartProximosAgendamentosLaboratorio() {
     const proximosAgendamentosPorLab = {};
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
-    // CORREÇÃO: Usar allData se não houver filtros, senão filteredData
-    const datasetBase = hasActiveFilters() ? filteredData : allData;
-    
-    // INICIALIZAR TODOS OS 3 LABORATÓRIOS (garante que todos apareçam no gráfico)
-    LABORATORIOS_COLETA.forEach(lab => {
-        proximosAgendamentosPorLab[lab] = null; // null = sem vagas disponíveis
-    });
+    // CORREÇÃO PRINCIPAL: Sempre usar allData (todos os dados), não filteredData
+    // Ignorar completamente os filtros de período para este gráfico
+    const datasetCompleto = allData;
     
     // Para cada laboratório, encontrar o próximo agendamento disponível (vaga livre)
     LABORATORIOS_COLETA.forEach(lab => {
-        const vagasLivresLab = datasetBase.filter(item => 
+        // Buscar todas as vagas livres deste laboratório em TODOS os dados
+        const vagasLivresLab = datasetCompleto.filter(item => 
             item.laboratorioColeta === lab && isVagaLivre(item.nomePaciente)
         );
         
         if (vagasLivresLab.length > 0) {
-            // Encontrar a data mais próxima no futuro
+            // Encontrar a data mais próxima no futuro (a partir de hoje)
             const datasOrdenadas = vagasLivresLab
                 .map(item => parseDate(item.dataAgendamento))
-                .filter(date => date && date >= hoje)
-                .sort((a, b) => a - b);
+                .filter(date => date && date >= hoje) // Apenas datas futuras
+                .sort((a, b) => a - b); // Ordenar cronologicamente
             
             if (datasOrdenadas.length > 0) {
                 const proximaData = datasOrdenadas[0];
@@ -781,16 +782,20 @@ function updateChartProximosAgendamentosLaboratorio() {
         }
     });
 
-    // CORREÇÃO: Ordenar mostrando primeiro os com dados, depois os sem dados
-    const dadosComVagas = Object.entries(proximosAgendamentosPorLab)
-        .filter(item => item[1] !== null)
-        .sort((a, b) => a[1] - b[1]);
-    
-    const dadosSemVagas = Object.entries(proximosAgendamentosPorLab)
-        .filter(item => item[1] === null)
-        .map(item => [item[0], 0]); // Colocar 0 para laboratórios sem vagas
+    // Preparar dados para o gráfico - SEMPRE mostrar todos os 3 laboratórios
+    const dadosParaGrafico = LABORATORIOS_COLETA.map(lab => {
+        return {
+            laboratorio: lab,
+            dias: proximosAgendamentosPorLab[lab] || null // null se não houver dados
+        };
+    });
 
-    const dadosFinais = [...dadosComVagas, ...dadosSemVagas];
+    // Ordenar por número de dias (nulls no final)
+    dadosParaGrafico.sort((a, b) => {
+        if (a.dias === null) return 1;
+        if (b.dias === null) return -1;
+        return a.dias - b.dias;
+    });
 
     const ctx = document.getElementById('chartUltimaDataLaboratorio').getContext('2d');
     if (charts.ultimaDataLaboratorio) charts.ultimaDataLaboratorio.destroy();
@@ -798,12 +803,12 @@ function updateChartProximosAgendamentosLaboratorio() {
     charts.ultimaDataLaboratorio = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: dadosFinais.map(item => item[0]),
+            labels: dadosParaGrafico.map(item => item.laboratorio),
             datasets: [{
                 label: 'Dias até próximo agendamento',
-                data: dadosFinais.map(item => item[1]),
-                backgroundColor: dadosFinais.map(item => item[1] === 0 ? '#9ca3af' : '#ea580c'), // Cinza para sem vagas
-                borderColor: dadosFinais.map(item => item[1] === 0 ? '#6b7280' : '#f97316'),
+                data: dadosParaGrafico.map(item => item.dias),
+                backgroundColor: dadosParaGrafico.map(item => item.dias === null ? '#94a3b8' : '#ea580c'),
+                borderColor: dadosParaGrafico.map(item => item.dias === null ? '#64748b' : '#f97316'),
                 borderWidth: 1
             }]
         },
@@ -818,7 +823,17 @@ function updateChartProximosAgendamentosLaboratorio() {
                     font: { weight: 'bold', size: 12 },
                     anchor: 'center',
                     align: 'center',
-                    formatter: (value) => value === 0 ? 'Sem vagas' : `${value} dias`
+                    formatter: (value) => value !== null ? `${value} dias` : 'Sem dados'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.parsed.x === null) {
+                                return 'Sem vagas livres disponíveis';
+                            }
+                            return `${context.parsed.x} dias até próximo agendamento`;
+                        }
+                    }
                 }
             },
             scales: {
@@ -826,11 +841,11 @@ function updateChartProximosAgendamentosLaboratorio() {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Dias até próximo agendamento'
-                    }
+                        text: 'Dias até próximo agendamento (a partir de hoje)'
+                    },
+                    beginAtZero: true
                 },
                 y: { 
-                    beginAtZero: true,
                     title: {
                         display: true,
                         text: 'Laboratórios de Coleta'
@@ -1331,7 +1346,7 @@ function updateSummaryTableWithTotal(tableId, data) {
     return 0;
 }
 
-// FUNÇÃO CORRIGIDA: clearFilters - Limpa TODOS os filtros corretamente
+// FUNÇÃO CORRIGIDA: clearFilters agora limpa o filtro de data corretamente
 function clearFilters() {
     // Limpar Select2 (Unidade, Laboratório, Mês/Ano, Horário)
     $('.filter-select').val(null).trigger('change');
@@ -1348,9 +1363,6 @@ function clearFilters() {
     
     // Atualizar as exibições dos filtros
     updateFilterDisplays();
-    
-    // ADICIONAL: Log para debug
-    console.log('Filtros limpos. Total de registros:', filteredData.length);
 }
 
 // EXPORTAÇÃO CORRIGIDA: Sem nome do paciente e telefone
